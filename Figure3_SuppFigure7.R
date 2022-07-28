@@ -1088,7 +1088,7 @@ dev.off()
 
 #####################################################################
 ### Figure 3D: bootstrapping of CN/Ploidy ========
-## Calculate (CN-Ploidy)/Ploidy per gene:
+#load shared ART genes
 ARTgenes.consist_type_list <- lapply(cancer.types, function(ca){
   print(ca)
   # genes with shared ART or consistent ART in BRCA, LUAD, LUSC (saved in data_dir)
@@ -1100,64 +1100,11 @@ names(ARTgenes.consist_type_list) <- cancer.types
 #reptTiming of genes
 repTiming_genes <-  readRDS(paste0(data_dir, 'cohort_meanL2R_genes.rds'))
 
-#load copy number data
-CN_segTable_list <- lapply(cancer.types, function(ca){
-  print(ca)
-  data <- load(paste0(data_dir, ca,"_ascat.seg.RData"))
-  assign('out', get(data))
-  return(out)
-})
-names(CN_segTable_list) <- cancer.types
-
-#function to calculate copy number difference to ploidy per gene
-diff_cn_ploidy_gene <- function(segTable, genes){
-  
-  #convert data.frames into GRange objects
-  segTable_gr <- GRanges(seqnames = paste0('chr', segTable$chr), IRanges(start = segTable$startpos, end = segTable$endpos), 
-                         sample = segTable$sample, diff = (((segTable$nAraw + segTable$nBraw) - segTable$Plodiy) / segTable$Plodiy))
-  genes_gr    <- makeGRangesFromDataFrame(genes)
-  
-  #find overlaps
-  overlap <- findOverlaps(genes_gr, segTable_gr)
-  
-  #calculate mean cn for each gene
-  mean_cn_list <- lapply(unique(queryHits(overlap)), function(x){
-    gene <- genes[x,]
-    intersect_segTable <- as.data.frame(pintersect(segTable_gr[subjectHits(overlap)[queryHits(overlap) == x]], genes_gr[x]))
-    intersect_segTable_mean <- intersect_segTable %>% 
-      group_by(sample) %>%
-      summarise(mean = sum(diff * width) / sum(width))
-    gene$mean_diff <- mean(intersect_segTable_mean$mean)
-    return(gene)
-  })
-  meanCN_gene <- Reduce(rbind, mean_cn_list)
-  
-  return(meanCN_gene)
-  
-}
-
-#calculate:
-gene.CN_TCGA.list <- lapply(cancer.types, function(x){
-  print(x)
-  ARTgenes <- ARTgenes.consist_type_list[[x]]%>%filter(timing %in% c('earlier', 'later'))%>%pull(gene_name)%>%unique()
-  ref.genes <- repTiming_genes[,c('gene_name', normal_cellLines[x])]
-  colnames(ref.genes)[2] <- 'l2r'
-  ref.genes <- ref.genes%>%filter(!is.na(l2r))%>%pull(gene_name)%>%unique()
-  genes_chr <- unique(c(ARTgenes, ref.genes))
-  genes <- repTiming_genes[repTiming_genes$gene_name %in% genes_chr, c('gene_name', 'chr', 'start', 'stop')]
-  
-  segTable_df <- CN_segTable_list[[x]]
-  if(x=='BRCA'){
-    samples <- subtype.brca.filter
-    samples$sample  <- sub('BRCA-', '', samples$PatientID)
-    segTable_subset <- segTable_df[segTable_df$sample %in% samples$sample,]
-    segTable_df <- segTable_subset
-  }
-  
-  cnDiff_gene <- diff_cn_ploidy_gene(segTable_df, genes)
-  return(cnDiff_gene)
-})
-names(gene.CN_TCGA.list) <- cancer.types
+#calculated copy number difference to ploidy per gene for BRCA, LUAD and LUSC from ascat data provided by TCGA
+#--> only lobular and ductal samples used for BRCA
+gene.CN_TCGA.list <- list('BRCA' = readRDS(paste0(data_dir, 'BRCAsubset_mean_cnDiff_perGene.rds')),
+                          'LUAD' = readRDS(paste0(data_dir, 'LUAD_mean_cnDiff_perGene.rds')),
+                          'LUSC' = readRDS(paste0(data_dir, 'LUSC_mean_cnDiff_perGene.rds')))
 
 # run bootstrapping tests:
 iteration <- 100000
