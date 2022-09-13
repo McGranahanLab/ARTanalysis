@@ -1,5 +1,5 @@
 ############################################################################################################
-#############               Hierarchical clustering of Log2(E/L) of 30 cell-lines              ############# 
+#############               Hierarchical clustering of RT signal of 30 cell-lines              ############# 
 ############################################################################################################
 # written by Michelle Dietzen (m.dietzen@ucl.ac.uk) and run in R version 3.5.1
 

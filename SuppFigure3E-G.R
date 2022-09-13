@@ -15,13 +15,11 @@ tissue_info$cellLine <- sub('A549rep', 'A549', tissue_info$cellLine)
 
 #load log2-ratios
 log2ratio_df        <- readRDS(paste0(data_dir,'cohort_50kb_l2r.rds'))
-log2ratio_df        <- log2ratio_df[,grep('LTX', colnames(log2ratio_df), invert = T)]
 normal_cellLines    <- colnames(log2ratio_df)[colnames(log2ratio_df) %in% tissue_info$cellLine[tissue_info$tissueType == 'Normal']]
 normal_log2ratio_df <- log2ratio_df[,c('chr', 'start', 'stop', normal_cellLines)]
 
 #load log2-ratios per gene
 log2ratio_genes        <- readRDS(paste0(data_dir, 'cohort_meanL2R_genes.rds') )
-log2ratio_genes        <- log2ratio_genes[,grep('LTX', colnames(log2ratio_genes), invert = T)]
 normal_cellLines       <- colnames(log2ratio_genes)[colnames(log2ratio_genes) %in% tissue_info$cellLine[tissue_info$tissueType == 'Normal']]
 normal_log2ratio_genes <- log2ratio_genes[,c('chr', 'start', 'stop', 'gene_name', normal_cellLines)]
 

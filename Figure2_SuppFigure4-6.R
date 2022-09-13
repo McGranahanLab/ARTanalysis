@@ -32,7 +32,7 @@ ARTregions_list <- readRDS(paste0(data_dir, '/ARTregions.rds'))
 TT1_artRegions_list   <- readRDS(paste0(data_dir, 'TT1_ARTregions.rds'))
 IMR90_artRegions_list <- readRDS(paste0(data_dir, 'IMR90_ARTregions.rds'))
 
-#load log2(E/L) values in 50kb windows
+#load RT values in 50kb windows
 repTiming_df <- readRDS(paste0(data_dir, '/cohort_50kb_l2r.rds'))
 
 
@@ -444,7 +444,7 @@ ggplot(plot_data_lines, aes(x = start, y = value)) +
   scale_colour_manual(name = 'Cell-line', values = c('IMR90' = '#000000','TT1' = '#000000', 'T2P' = '#a50f15', 'H1650' = '#08519c')) +
   scale_linetype_manual(name = 'Cell-line', values = c('IMR90' = 'dotted', 'TT1' = 'dashed', 'T2P' = 'solid', 'H1650' = 'solid')) +
   scale_x_continuous(expand = c(0,0)) +
-  xlab('Genomic Position (mb)') + ylab('Log2(E/L)') + 
+  xlab('Genomic Position (mb)') + ylab('RT signal') + 
   ggtitle(paste0('IMR90 discordant region on Chromsome ', sub('chr', '',  domains$seqnames[1]))) +
   theme_bw() + theme(panel.grid = element_blank())
 dev.off()   
@@ -489,7 +489,7 @@ ggplot(plot_data_lines, aes(x = start, y = value)) +
   scale_colour_manual(name = 'Cell-line', values = c('IMR90' = '#000000','TT1' = '#000000', 'T2P' = '#a50f15', 'H1650' = '#08519c')) +
   scale_linetype_manual(name = 'Cell-line', values = c('IMR90' = 'dotted', 'TT1' = 'dashed', 'T2P' = 'solid', 'H1650' = 'solid')) +
   scale_x_continuous(expand = c(0,0)) +
-  xlab('Genomic Position (mb)') + ylab('Log2(E/L)') + 
+  xlab('Genomic Position (mb)') + ylab('RT signal') + 
   ggtitle(paste0('TT1 discordant region on Chromsome ', sub('chr', '',  domains$seqnames[1]))) +
   theme_bw() + theme(panel.grid = element_blank())
 dev.off()   
@@ -767,7 +767,7 @@ ggplot(plot_data_lines, aes(x = start, y = value)) +
   scale_linetype_manual(name = 'Cell-line', values = c('HMEC' = 'dashed', 'MCF.7' = 'solid', 'MDA453' = 'solid', 'SK.BR3' = 'solid', 'T47D' = 'solid'),
                         labels = c('HMEC' = 'HMEC', 'MCF.7' = 'MCF-7', 'MDA453' = 'MDA453', 'SK.BR3' = 'SK-BR3', 'T47D' = 'T47D')) +
   scale_x_continuous(expand = c(0,0)) +
-  xlab('Genomic Position (mb)') + ylab('Log2(E/L)') + 
+  xlab('Genomic Position (mb)') + ylab('RT signal') + 
   ggtitle(paste0('BRCA - Recurrent ART on Chromsome ', sub('chr', '',  recurrent_domains$seqnames[1]))) +
   theme_bw() + theme(panel.grid = element_blank())
 dev.off()                   
@@ -810,7 +810,7 @@ ggplot(plot_data_lines, aes(x = start, y = value)) +
   scale_colour_manual(name = 'Cell-line', values = c('T2P' = 'black', 'H1650' = '#08519c', 'H1792' = '#2171b5', 'H2009' = '#4292c6', 'A549' = '#6baed6')) +
   scale_linetype_manual(name = 'Cell-line', values = c('T2P' = 'dashed', 'H1650' = 'solid', 'H1792' = 'solid', 'H2009' = 'solid', 'A549' = 'solid')) +
   scale_x_continuous(expand = c(0,0)) +
-  xlab('Genomic Position (mb)') + ylab('Log2(E/L)') + 
+  xlab('Genomic Position (mb)') + ylab('RT signal') + 
   ggtitle(paste0('LUAD - Shared ART on Chromsome ', sub('chr', '',  shared_domains$seqnames[i]))) +
   theme_bw() + theme(panel.grid = element_blank())
 dev.off()                   
@@ -853,7 +853,7 @@ ggplot(plot_data_lines, aes(x = start, y = value)) +
   scale_colour_manual(name = 'Cell-line', values = c('HBEC3' = 'black', 'H520' = '#006d2c', 'H2170' = '#238b45', 'SW900' = '#41ab5d')) +
   scale_linetype_manual(name = 'Cell-line', values = c('HBEC3' = 'dashed', 'H520' = 'solid', 'H2170' = 'solid', 'SW900' = 'solid')) +
   scale_x_continuous(expand = c(0,0)) +
-  xlab('Genomic Position (mb)') + ylab('Log2(E/L)') + 
+  xlab('Genomic Position (mb)') + ylab('RT signal') + 
   ggtitle(paste0('LUSC - Unique ART on Chromsome ', sub('chr', '',  unique_domains$seqnames[1]))) +
   theme_bw() + theme(panel.grid = element_blank())
 dev.off()  

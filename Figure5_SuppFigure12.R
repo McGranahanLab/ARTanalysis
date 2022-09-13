@@ -1,5 +1,5 @@
 #####################################################################
-## Figure 5. Gene based analyses (& Supplementary Figure 7)
+## Figure 5. Gene based analyses (& Supplementary Figure 12)
 #####################################################################
 # written by Haoran Zhai (haoran.zhai.17@ucl.ac.uk) and run in R version 4.0.2
 

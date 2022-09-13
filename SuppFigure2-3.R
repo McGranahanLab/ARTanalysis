@@ -32,7 +32,7 @@ tissue_info <- read.table(paste0(data_dir, '/tissueInfo_cellLines_20210309.tsv')
 tissue_info$cellLine <- sub('A549$', 'A549encode', tissue_info$cellLine)
 tissue_info$cellLine <- sub('A549rep', 'A549', tissue_info$cellLine)
 
-#load log2(E/L) values in 50kb windows
+#load RT values in 50kb windows
 repTiming_df <- readRDS(paste0(data_dir, '/cohort_50kb_l2r.rds'))
 normal_cellLines <- colnames(repTiming_df)[colnames(repTiming_df) %in% tissue_info$cellLine[tissue_info$tissueType == 'Normal']]
 
