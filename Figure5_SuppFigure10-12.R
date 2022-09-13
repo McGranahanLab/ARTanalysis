@@ -4,7 +4,7 @@
 # written by Michelle Dietzen (m.dietzen@ucl.ac.uk) and run in R version 3.5.1
 
 # Description:
-# Script to create Figure 5 and SuppFigure 10-12 of the manuscript "Replication timing alterations shape the genomic and transcriptomic landscape during breast and lung cancer evolution"
+# Script to create Figure 4 and SuppFigure 9-11 of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution".
 # --> BRCA data used as an example (LUAD and LUSC data Data from the 100,000 Genomes Project are held in a secure research environment and are available to registered users. 
 #     See https://www.genomicsengland.co.uk/research/academic for further information.)
 # Data accessibility statement can be found in the manuscript.
@@ -253,8 +253,8 @@ saveRDS(prior_sigs, file = paste0(output_dir, 'priorSBS_breast_genome.rds'))
 #--> run HDP_sigExtraction (https://github.com/McGranahanLab/HDP_sigExtraction) pipeline to extract mutation signatures in RT and ART regions
 
 
-#---------------- Figure 5 A ----------------#
-#--> Figure 5 B-C were created in the same way using the LUAD and LUSC data from the 100,000 Genomes Project
+#---------------- Figure 4 A ----------------#
+#--> Figure 4 B-C were created in the same way using the LUAD and LUSC data from the 100,000 Genomes Project
 sigActivity_threshold <- 0.1
 exposures[exposures < sigActivity_threshold] <- 0
 order_signatures <- colnames(exposures)[order(as.numeric(gsub('SBS|b', '', colnames(exposures))))]
@@ -330,7 +330,7 @@ dev.off()
 
 
 
-#---------------- SuppFigure 10 ----------------#
+#---------------- SuppFigure 9 ----------------#
 pdf(paste0(output_dir, "SBSprofiles_BRCA.pdf"), width = 10, height = 5)
 lapply(colnames(signatures), function(x){
   plot_data <- data.frame(channel = rownames(signatures), value = signatures[,x])
@@ -341,7 +341,7 @@ dev.off()
 
 
 
-#---------------- SuppFigure 11 ----------------#
+#---------------- SuppFigure 10 ----------------#
 input_matrix <- readRDS(paste0(data_dir, 'input_96matrix_patient_sharedRepTiming.rds'))
 
 plot_weights <- exposures
@@ -382,7 +382,7 @@ dev.off()
 
 
 
-#---------------- Figure 5 D ----------------#
+#---------------- Figure 4 D ----------------#
 #--> run hyperClust (https://github.com/davidmasp/hyperclust) and use results here
 
 #annotate mutation cluster
@@ -450,7 +450,7 @@ dev.off()
 
 
 
-#---------------- Figure 5 E ----------------#
+#---------------- Figure 4 E ----------------#
 mutTable$cancerGene <- ifelse(mutTable$Gene %in% pancan_genes$Gene, 'cancerGene', 'non_cancerGene')
 
 repTiming_size <- overlap_repTiming %>%
@@ -583,7 +583,7 @@ patients_perGene <- genes %>%
 
 
 
-#---------------- SuppFigure 12 ----------------#
+#---------------- SuppFigure 11 ----------------#
 repTiming_size <- overlap_repTiming %>%
   group_by(timing) %>%
   mutate(width = stop - start) %>%

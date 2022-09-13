@@ -4,7 +4,7 @@
 # written by Haoran Zhai (haoran.zhai.17@ucl.ac.uk) and run in R version 4.0.2
 
 # Description:
-# Scripts to create Figure 3 and Supplementary Figure 7 in the manuscript named "Replication timing alterations shape the genomic and transcriptomic landscape during breast and lung cancer evolution"
+# Scripts to create Figure 5 and Supplementary Figure 12 in the manuscript named "Replication timing alterations impact mutation acquisition during tumour evolution".
 # Data accessibility statement can be found in the manuscript.
 
 #libraries
@@ -46,7 +46,7 @@ cancer_cellLines <- list('BRCA' = c('SK-BR3', 'MCF-7', 'T47D', 'MDA453'),
 normal_cellLines <- c('BRCA' = 'HMEC', 'LUAD' = 'T2P', 'LUSC' = 'HBEC3')
 chr_to_use <- paste0('chr', c(1:22))
 
-### Figure 3A: gene density ===========
+### Figure 5C: gene density ===========
 # Load overlaping.ART regions:
 overlap.ART_list <- lapply(cancer.types, function(x){
   print(x)
@@ -129,7 +129,7 @@ print(p.violin_gene.density)
 dev.off()
 
 #####################################################################
-### Supplementary Figure 7A: Proportions of genes with consistent RT or shared/recurrent ART (in BRCA, LUAD and LUSC) ======
+### Supplementary Figure 12A: Proportions of genes with consistent RT or shared/recurrent ART (in BRCA, LUAD and LUSC) ======
 all.cellLines <- data.frame(cellLine = c(unlist(cancer_cellLines), normal_cellLines)) %>%
   rownames_to_column(var = 'cancer.type') %>% 
   mutate(cancer.type = substr(cancer.type, 1,4)) %>%

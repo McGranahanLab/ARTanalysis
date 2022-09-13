@@ -4,7 +4,7 @@
 # written by Michelle Dietzen (m.dietzen@ucl.ac.uk) and run in R version 3.5.1
 
 # Description:
-# Script to create Figure 2 and SuppFigure 4 - 6 of the manuscript "Replication timing alterations shape the genomic and transcriptomic landscape during breast and lung cancer evolution"
+# Script to create Figure 2 and SuppFigure 4 - 6 of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution".
 # Data accessibility statement can be found in the manuscript.
 
 #library and options

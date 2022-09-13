@@ -4,7 +4,7 @@
 # written by Michelle Dietzen (m.dietzen@ucl.ac.uk) and run in R version 3.5.1
 
 # Description:
-# Script to create Figure 4 and SuppFigure 8  of the manuscript "Replication timing alterations shape the genomic and transcriptomic landscape during breast and lung cancer evolution"
+# Script to create Figure 3 and SuppFigure 7  of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution".
 # --> BRCA data used as an example (LUAD and LUSC data Data from the 100,000 Genomes Project are held in a secure research environment and are available to registered users. 
 #     See https://www.genomicsengland.co.uk/research/academic for further information.)
 # Data accessibility statement can be found in the manuscript.
@@ -281,7 +281,7 @@ averageBehaviour_genomicArea <- function(centers_df, repTiming_normal_cancer, mu
 #######     Main     #######
 ############################
 
-#--------- Figure 4 A ---------#
+#--------- Figure 7 A ---------#
 BRCA_mutLoad <- cnMut_cnTotal.mutationLoad.bin(mutTable, lspan = NA)
 
 plot_data <- BRCA_mutLoad %>% 
@@ -304,7 +304,7 @@ dev.off()
 
 
 
-#--------- Figure 4 B ---------#
+#--------- Figure 7 B ---------#
 consistent_repTiming_df <- recurrentART
 cellLines               <- c('HMEC', 'MCF-7', 'MDA453', 'SK-BR3', 'T47D')
 repTiming_df            <- repTiming_df[,c('chr', 'start', 'stop', cellLines)]
@@ -335,7 +335,7 @@ dev.off()
 
 
 
-#--------- Figure 4 C ---------#
+#--------- Figure 7 C ---------#
 #calculate mutation load
 clonal_mutTable   <- mutTable[!is.na(mutTable$absolute.ccf),]
 clonal_mutTable   <- clonal_mutTable[clonal_mutTable$absolute.ccf > 0.95,]
@@ -366,7 +366,7 @@ dev.off()
 
 
 
-#--------- SuppFigure 8 ---------#
+#--------- SuppFigure 7 ---------#
 #calculate mutation load per subtype
 # SK-BR3 = HER2+ #
 samples <- clinical_data$sample_name[which(clinical_data$final.ER == 'negative' & clinical_data$final.PR == 'negative' & clinical_data$final.HER2 == 'positive')]

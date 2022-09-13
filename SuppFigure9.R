@@ -4,7 +4,7 @@
 # written by Michelle Dietzen (m.dietzen@ucl.ac.uk) and run in R version 3.5.1
 
 # Description:
-# Script to create Figure 3 and SuppFigure 8  of the manuscript "Replication timing alterations shape the genomic and transcriptomic landscape during breast and lung cancer evolution"
+# Script to create SuppFigure 8  of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution".
 # --> BRCA data used as an example (LUAD and LUSC data Data from the 100,000 Genomes Project are held in a secure research environment and are available to registered users. 
 #     See https://www.genomicsengland.co.uk/research/academic for further information.)
 # Data accessibility statement can be found in the manuscript.
@@ -307,7 +307,7 @@ mutLoad_perMB_perRepTiming <- mutLoad %>%
   mutate(mutLoad_perMb = mutCount / regionSize_perMb)
 
 #plot pie of fraction of mutations in early and late replicated regions adjusted for size
-#--> SuppFigure 9A
+#--> SuppFigure 8A
 plot_data <- data.frame(timing = c('early', 'late'),
                         fraction = c(mutLoad_perMB_perRepTiming$mutLoad_perMb[mutLoad_perMB_perRepTiming$timing == 'early'] / (mutLoad_perMB_perRepTiming$mutLoad_perMb[mutLoad_perMB_perRepTiming$timing == 'late'] + mutLoad_perMB_perRepTiming$mutLoad_perMb[mutLoad_perMB_perRepTiming$timing == 'early']),
                                      mutLoad_perMB_perRepTiming$mutLoad_perMb[mutLoad_perMB_perRepTiming$timing == 'late'] / (mutLoad_perMB_perRepTiming$mutLoad_perMb[mutLoad_perMB_perRepTiming$timing == 'late'] + mutLoad_perMB_perRepTiming$mutLoad_perMb[mutLoad_perMB_perRepTiming$timing == 'early'])))
@@ -342,7 +342,7 @@ simulated_meanMutLoad_list <- lapply(seq(0, 1, 0.01), function(s){
 names(simulated_meanMutLoad_list) <- paste0('ARTtiming_',seq(0, 1, 0.01))
 
 #plot simulated distributions
-#--> SuppFigure 9C
+#--> SuppFigure 8C
 plot_data <- lapply(paste0('ARTtiming_',seq(0, 1, 0.1)), function(x){
   meanMutLoad <- simulated_meanMutLoad_list[[x]]
   meanMutLoad <- reshape2::melt(meanMutLoad)
@@ -364,7 +364,7 @@ ggplot(plot_data, aes(x = meanMutLoad, fill = repTiming)) +
 dev.off()
 
 #plot ridge of differences
-#--> SuppFigure 9C
+#--> SuppFigure 8C
 plot_data <- lapply(paste0('ARTtiming_',seq(0, 1, 0.1)), function(x){
   meanMutLoad <- simulated_meanMutLoad_list[[x]]
   meanMutLoad$earlier <- abs(meanMutLoad$earlier - meanMutLoad$early) / abs(meanMutLoad$late - meanMutLoad$early)
@@ -400,7 +400,7 @@ rownames(test_similarity_distribution) <- NULL
 
 
 #plot fraction overlaps
-#--> SuppFigure 9G
+#--> SuppFigure 8G
 plot_data <- test_similarity_distribution
 plot_data$frac_verlap <- (1 - plot_data$pvalue)
 

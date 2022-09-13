@@ -4,7 +4,7 @@
 # written by Michelle Dietzen (m.dietzen@ucl.ac.uk) and run in R version 3.5.1
 
 # Description:
-# Script to create Figure 1 of the manuscript "Replication timing alterations shape the genomic and transcriptomic landscape during breast and lung cancer evolution"
+# Script to create Figure 1 of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution".
 # Data accessibility statement can be found in the manuscript.
 
 #library and options
@@ -19,6 +19,7 @@ library(ggpubr)
 library(grid)
 library(gridExtra)
 library(RColorBrewer)
+library(GenomicRanges)
 
 
 #parameters
@@ -27,110 +28,11 @@ output_dir <- '.' #set full path to the directory where the results for this ana
 
 
 
-############################
-#######     Main     #######
-############################
+#load BRCA mutation data
+load(paste0(data_dir, '/560Breast_subset_mutTable.RData'))
 
-#------- Figure 1 A -------#
-
-#load RPKM counts and log2ratio in 50kb windows for T2P
-early_RPKM <- as.data.frame(vroom(paste0(data_dir ,'/T2P_Early.filteredRPKM.bedGraph'),  col_names =  c('chr', 'start', 'stop', 'score')))
-late_RPKM  <- as.data.frame(vroom(paste0(data_dir ,'/T2P_Late.filteredRPKM.bedGraph'),  col_names =  c('chr', 'start', 'stop', 'score')))
-log2ratio  <- as.data.frame(vroom(paste0(data_dir, '/T2P.loess300000.bedGraph'), col_names = c('chr', 'start', 'stop', 'score')))
-
-#plot per chromosome (chromsome 3 shown in Figure 1 A)
-pdf(paste0(output_dir, '/T2P.RPKMcounts.log2ratio.pdf'), width = 10, height = 3)
-for(chr in paste0('chr', c(1:22, 'X'))) {
-  sub        <- early_RPKM[early_RPKM[,1]==chr,]
-  x.range    <- seq(min(sub$start), max(sub$start), by = as.numeric(WINDOWSIZE))
-  full.early <- data.frame(chr = chr, start = x.range, score = 0, Timing = 'Early')
-  full.early$score[full.early$start %in% sub$start] <- sub$score
-  full.early$start <- full.early$start / 1000000
-  
-  sub        <- late_RPKM[late_RPKM[,1]==chr,]
-  full.late <- data.frame(chr = chr, start = x.range, score = 0, Timing = 'Late')
-  full.late$score[full.late$start %in% sub$start] <- -1*sub$score
-  full.late$start <- full.late$start / 1000000
-  
-  count.data        <- rbind(full.early, full.late)
-  count.data$Timing <- factor(count.data$Timing, levels = c('Early', 'Late'))
-  
-  log2ratio.chr       <- log2ratio[log2ratio$chr == chr,]
-  log2ratio.chr$start <- log2ratio.chr$start / 1000000
-  
-  min.y <- max(min(c(min(log2ratio.chr$score), min(count.data$score))), -10)
-  min.y <- ifelse((floor(min.y) %% 2) == 0, floor(min.y), floor(min.y) - 1)
-  max.y <- min(max(c(max(log2ratio.chr$score), max(count.data$score))), 10)
-  max.y <- ifelse((ceiling(max.y) %% 2) == 0, ceiling(max.y), ceiling(max.y) + 1)
-  y.axis.breaks <- c(rev(seq.int(0, min.y, by = -2)), seq.int(0, max.y, by = 2))
-  y.axis.breaks <- unique(y.axis.breaks)
-  y.axis.labels <- sub('-', '', y.axis.breaks)
-  
-  p <- ggplot() + 
-    geom_area(data = count.data, mapping = aes(x = start, y = score, fill = Timing, group = Timing), position = 'identity') +
-    guides(fill=guide_legend(title="RPKM counts")) +
-    geom_line(data = log2ratio.chr, mapping = aes(x=log2ratio.chr$start, y = log2ratio.chr$score, colour='black'), size = 0.2) +
-    scale_colour_manual(name = '', values = c('black'='black'), labels = c('log2-ratio')) +
-    scale_y_continuous(breaks = y.axis.breaks, labels = y.axis.labels, limits = c(min.y, max.y)) +
-    theme_bw() + 
-    ylab('') + xlab('Chromosome Position (mb)') + 
-    ggtitle(paste0('Chromosome ', sub('chr', '', chr)))
-  plot(p)
-}
-dev.off()
-
-
-#------- Figure 1 B -------#
-
-#load RPKM counts and log2ratio in 50kb windows for T47D
-early_RPKM <- as.data.frame(vroom(paste0(data_dir ,'/T47D_Early.filteredRPKM.bedGraph'),  col_names =  c('chr', 'start', 'stop', 'score')))
-late_RPKM  <- as.data.frame(vroom(paste0(data_dir ,'/T47D_Late.filteredRPKM.bedGraph'),  col_names =  c('chr', 'start', 'stop', 'score')))
-log2ratio  <- as.data.frame(vroom(paste0(data_dir, '/T47D.loess300000.bedGraph'), col_names = c('chr', 'start', 'stop', 'score')))
-
-#plot per chromosome (chromsome 3 shown in Figure 1 A)
-pdf(paste0(output_dir, '/T47D.RPKMcounts.log2ratio.pdf'), width = 10, height = 3)
-for(chr in paste0('chr', c(1:22, 'X'))) {
-  sub        <- early_RPKM[early_RPKM[,1]==chr,]
-  x.range    <- seq(min(sub$start), max(sub$start), by = as.numeric(WINDOWSIZE))
-  full.early <- data.frame(chr = chr, start = x.range, score = 0, Timing = 'Early')
-  full.early$score[full.early$start %in% sub$start] <- sub$score
-  full.early$start <- full.early$start / 1000000
-  
-  sub        <- late_RPKM[late_RPKM[,1]==chr,]
-  full.late <- data.frame(chr = chr, start = x.range, score = 0, Timing = 'Late')
-  full.late$score[full.late$start %in% sub$start] <- -1*sub$score
-  full.late$start <- full.late$start / 1000000
-  
-  count.data        <- rbind(full.early, full.late)
-  count.data$Timing <- factor(count.data$Timing, levels = c('Early', 'Late'))
-  
-  log2ratio.chr       <- log2ratio[log2ratio$chr == chr,]
-  log2ratio.chr$start <- log2ratio.chr$start / 1000000
-  
-  min.y <- max(min(c(min(log2ratio.chr$score), min(count.data$score))), -10)
-  min.y <- ifelse((floor(min.y) %% 2) == 0, floor(min.y), floor(min.y) - 1)
-  max.y <- min(max(c(max(log2ratio.chr$score), max(count.data$score))), 10)
-  max.y <- ifelse((ceiling(max.y) %% 2) == 0, ceiling(max.y), ceiling(max.y) + 1)
-  y.axis.breaks <- c(rev(seq.int(0, min.y, by = -2)), seq.int(0, max.y, by = 2))
-  y.axis.breaks <- unique(y.axis.breaks)
-  y.axis.labels <- sub('-', '', y.axis.breaks)
-  
-  p <- ggplot() + 
-    geom_area(data = count.data, mapping = aes(x = start, y = score, fill = Timing, group = Timing), position = 'identity') +
-    guides(fill=guide_legend(title="RPKM counts")) +
-    geom_line(data = log2ratio.chr, mapping = aes(x=log2ratio.chr$start, y = log2ratio.chr$score, colour='black'), size = 0.2) +
-    scale_colour_manual(name = '', values = c('black'='black'), labels = c('log2-ratio')) +
-    scale_y_continuous(breaks = y.axis.breaks, labels = y.axis.labels, limits = c(min.y, max.y)) +
-    theme_bw() + 
-    ylab('') + xlab('Chromosome Position (mb)') + 
-    ggtitle(paste0('Chromosome ', sub('chr', '', chr)))
-  plot(p)
-}
-dev.off()
-
-
-
-#------- Figure 1 C -------#
+#load BRCA mutation data
+load(paste0(data_dir, '/560Breast_subset_cnTable.RData'))
 
 #read in info to cell-lines
 tissue_info <- read.table(paste0(data_dir, '/tissueInfo_cellLines_20210309.tsv'), header = T, sep = '\t')
@@ -142,6 +44,118 @@ mutTable <- readRDS(paste0(data_dir, '/mutTable_DepMap_20210802.rds'))
 
 #read in log2-ratios for the 30 cell-lines
 log2ratio_df <- readRDS(paste0(data_dir, '/cohort_50kb_l2r.rds'))
+
+
+
+
+#################################
+#######     Functions     #######
+#################################
+
+#function to calculate mutation frequency in gained, lost and no event regions per sample
+mutLoad_cnEvents <- function(sample_mutTable, sample_cnTable, gain_threshold = log2(2.5/2), loss_threshold = log2(1.5/2)){
+  
+  #calculate log2 value
+  sample_cnTable$logCN <- log2(sample_cnTable$nTotal / sample_cnTable$ploidy)
+  
+  #classify gains and losses based on thresholds
+  sample_cnTable$event <- 'no_event'
+  sample_cnTable$event[sample_cnTable$logCN >= gain_threshold] <- 'gain'
+  sample_cnTable$event[sample_cnTable$logCN <= loss_threshold] <- 'loss'
+  
+  #overlap mutations with different events
+  mut_gr     <- GRanges(seqnames = sample_mutTable$Chrom, IRanges(start = sample_mutTable$Pos, end =  sample_mutTable$Pos))
+  
+  if(sum(sample_cnTable$event == 'gain') > 0){
+    gain_gr    <- makeGRangesFromDataFrame(sample_cnTable[sample_cnTable$event == 'gain',])
+    overlap <- findOverlaps(gain_gr, mut_gr)
+    gain_mutDensity <- length(unique(subjectHits(overlap))) / sum(width(gain_gr))
+  } else {
+    gain_mutDensity <- NA
+  }
+  
+  if(sum(sample_cnTable$event == 'loss') > 0){
+    loss_gr    <- makeGRangesFromDataFrame(sample_cnTable[sample_cnTable$event == 'loss',])
+    overlap <- findOverlaps(loss_gr, mut_gr)
+    loss_mutDensity <- length(unique(subjectHits(overlap))) / sum(width(loss_gr))
+  } else{
+    loss_mutDensity <- NA
+  }
+  
+  if(sum(sample_cnTable$event == 'no_event') > 0){
+    noEvent_gr <- makeGRangesFromDataFrame(sample_cnTable[sample_cnTable$event == 'no_event',])
+    overlap <- findOverlaps(noEvent_gr, mut_gr)
+    noEvent_mutDensity <- length(unique(subjectHits(overlap))) / sum(width(noEvent_gr))
+  } else {
+    noEvent_mutDensity <- NA
+  }
+  
+  #create output
+  output_df <- data.frame(sample = sample_mutTable$Sample[1], gain_mutDensity, loss_mutDensity, noEvent_mutDensity)
+  return(output_df)
+}
+
+
+############################
+#######     Main     #######
+############################
+
+#------- Figure 1 A -------#
+#--> the same code was used to create Figure 1 B-C for LUAD and LUSC
+
+#calculate mutation frequency in gained, lost and neutral genomic regions per sample
+cn_mutLoad_perSample <- lapply(unique(copyNumber_df$sample), function(x){
+  print(x)
+  sample_cnTable  <- copyNumber_df[copyNumber_df$sample == x,]
+  sample_mutTable <- mutTable[grep(x, mutTable$Sample),]
+  
+  mutDensity <- data.frame(mutLoad_cnEvents(sample_mutTable, sample_cnTable), nMuts = nrow(sample_mutTable))
+  return(mutDensity)
+})
+cn_mutLoad_perSample <- Reduce(rbind, cn_mutLoad_perSample)
+
+#boxplot and paired t-test
+plot_data <- reshape2::melt(cn_mutLoad_perSample, id.vars = c('sample', 'nMuts'))
+plot_data$variable <- sub('_mutDensity', '', plot_data$variable)
+plot_data$variable <- sub('noEvent', 'neutral', plot_data$variable)
+plot_data$variable <- factor(plot_data$variable, levels = c('loss', 'neutral', 'gain'))
+
+pdf(paste0(output_dir, 'boxplot_mutDensity_cnEvents.pdf'), width = 4, height = 4, useDingbats = F)
+ggplot(plot_data, aes(x = variable, y = value)) +
+  geom_line(aes(group = sample), colour = '#e0e0e0') +
+  ggbeeswarm::geom_quasirandom(aes(colour = variable), width = 0.3, alpha = 0.8) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  stat_compare_means(paired = T, comparisons = list(c('loss', 'neutral'), c('neutral', 'gain')), method.args = list(alternative = "less")) +
+  scale_colour_manual(values = c('loss' = '#2166ac', 'neutral' = '#878787', 'gain' = '#b2182b')) +
+  xlab('') + ylab('Mutation Density') +
+  labs(title = "Mutation Densities in Regions\nwith Copy Number Events",
+       subtitle = '(Paired t-test with alternative less)') +
+  scale_y_continuous(trans = 'log10') +
+  theme_bw() +
+  theme(legend.position = 'none', panel.grid = element_blank())
+dev.off()
+
+
+#------- Figure 1 D -------#
+
+#barplot with number of tumours
+plot_data <- data.frame(cancerType = c('BRCA', 'LUAD', 'LUSC'), 
+                        value = c(482, 470, 319))
+
+pdf(paste0(output_dir, 'bar_nTumours_cancerType.pdf'), width = 4, height = 3, useDingbats = F)
+
+dev.off()
+
+
+#------- Figure 1 E -------#
+
+
+
+#------- Figure 1 F -------#
+
+
+
+#------- Figure 1 G -------#
 
 #heatmap with  euclidean distance and ward.2 criterion
 cluster_method  <- 'ward.D2'
