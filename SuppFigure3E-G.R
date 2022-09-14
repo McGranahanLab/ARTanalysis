@@ -8,6 +8,22 @@
 # Scripts to create Supplementary Figure 3E/F/G in the manuscript named "Replication timing alterations impact mutation acquisition during tumour evolution".
 # Data accessibility statement can be found in the manuscript.
 
+#libraries
+options(stringsAsFactors = F)
+library(ggplot2)
+library(ggpubr)
+library(RColorBrewer)
+library(grid)
+library(gridExtra)
+library(gtable)
+library(ggbeeswarm)
+library(ggrepel)
+library(ggalluvial)
+library(readxl)
+library(writexl)
+library(tidyverse)
+library(dplyr)
+
 ### Supplementary Figure 3E: conserved RT (in all 10 normal) ========
 tissue_info <- read.table(paste0(data_dir, 'tissueInfo_cellLines_20210309.tsv'), header = T, sep = '\t')
 tissue_info$cellLine <- sub('A549$', 'A549encode', tissue_info$cellLine)
