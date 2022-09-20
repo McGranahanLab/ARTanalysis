@@ -20,6 +20,7 @@ library(grid)
 library(gridExtra)
 library(RColorBrewer)
 library(GenomicRanges)
+library(BSgenome.Hsapiens.UCSC.hg19)
 
 
 #parameters
@@ -42,9 +43,8 @@ tissue_info$cellLine <- sub('A549rep', 'A549', tissue_info$cellLine)
 #read in cell-line mutations
 mutTable <- readRDS(paste0(data_dir, '/mutTable_DepMap_20210802.rds'))
 
-#read in log2-ratios for the 30 cell-lines
-log2ratio_df <- readRDS(paste0(data_dir, '/cohort_50kb_l2r.rds'))
-
+#read in replication timing signal (log2-ratio) for the 30 cell-lines
+repTiming_hg19_df <- readRDS(paste0(data_dir, '/cohort_50kb_l2r.rds'))
 
 
 
@@ -96,6 +96,70 @@ mutLoad_cnEvents <- function(sample_mutTable, sample_cnTable, gain_threshold = l
 }
 
 
+#function to calculate copy number adjusted mutation load in 50kb windows
+cnMut_cnTotal.mutationLoad.bin <- function(sample.mutTable, 
+                                           chromosomes = paste0('chr', c(1:22)), 
+                                           binSize = 50000, 
+                                           genome = BSgenome.Hsapiens.UCSC.hg19,
+                                           lspan = 500000){
+  
+  chr.length    <- seqlengths(genome)
+  mutLoad.table <- c()
+  for(chr in chromosomes){
+    chr.size <- chr.length[chr]
+    
+    #divide chromosome into binSize windows
+    seq.bin <- c(seq(from = 1, to = chr.size, by = binSize), chr.size)
+    bins_gr <- GRanges(seqnames = chr, IRanges(start = seq.bin[1:(length(seq.bin)-1)], end = seq.bin[2:length(seq.bin)]-1))
+    
+    #subset mutation table
+    sub.mutTable    <- sample.mutTable[sample.mutTable$Chrom == chr,]
+    sub.mutTable_gr <- GRanges(seqnames = sub.mutTable$Chrom, IRanges(start = sub.mutTable$Pos, end = sub.mutTable$Pos))
+    
+    #count mutations in bins
+    overlap        <- findOverlaps(bins_gr, sub.mutTable_gr)
+    if(length(overlap) == 0){
+      count.bins          <- as.data.frame(bins_gr)
+      count.bins$mutLoad  <- NA
+      count.bins$mutCount <- NA
+    } else{
+      counts.values   <- lapply(unique(queryHits(overlap)), function(x){
+        mut_bin <- sub.mutTable[subjectHits(overlap)[queryHits(overlap) == x],]
+        mut_cn_count <- round(mut_bin[,'cnMut']) / mut_bin[,'cnTotal']
+        mut_cn_count[mut_bin[,'cnTotal'] == 0] <- 0
+        data.frame(mutLoad = sum(mut_cn_count, na.rm = T), mutCount = nrow(mut_bin))
+      })
+      counts.values <- Reduce(rbind, counts.values)
+      rownames(counts.values) <- unique(queryHits(overlap))
+      count.bins              <- as.data.frame(bins_gr)
+      count.bins$mutLoad <- count.bins$mutCount <- NA
+      count.bins$mutCount[as.numeric(rownames(counts.values))] <- as.numeric(counts.values$mutCount)
+      count.bins$mutLoad[as.numeric(rownames(counts.values))] <- as.numeric(counts.values$mutLoad)
+      count.bins$mutLoad <- (count.bins$mutLoad / count.bins$width) * binSize
+    }
+    colnames(count.bins)[1] <- 'chr'
+    
+    
+    
+    if(!is.na(lspan)){
+      #smooth
+      chromlspan <- lspan/(max(count.bins[,3])-min(count.bins[,2]))
+      
+      count.bins$smooth_mutLoad <- predict(loess(mutLoad~start, data = count.bins, span=chromlspan), count.bins$start)
+      count.bins$smooth_mutLoad[count.bins$smooth_mutLoad < 0] <- 0
+      count.bins$smooth_mutLoad[is.na(count.bins$mutLoad)] <- NA
+    }
+    
+    mutLoad.table <- rbind(mutLoad.table, count.bins)
+  }
+  
+  mutLoad.table$start <- mutLoad.table$start - 1
+  return(mutLoad.table)
+  
+}
+
+
+
 ############################
 #######     Main     #######
 ############################
@@ -143,21 +207,135 @@ plot_data <- data.frame(cancerType = c('BRCA', 'LUAD', 'LUSC'),
                         value = c(482, 470, 319))
 
 pdf(paste0(output_dir, 'bar_nTumours_cancerType.pdf'), width = 4, height = 3, useDingbats = F)
-
+ggplot(plot_data, aes(x = cancerType, y = value, fill = cancerType)) + 
+  geom_bar(stat = 'identity') + 
+  scale_fill_manual(values = c('LUAD' = '#4292c6', 'LUSC' = '#41ab5d', 'BRCA' = '#fd8d3c'), guide = F) +
+  geom_text(aes(label = value), colour = 'white', position = position_stack(vjust = 0.5)) +
+  coord_flip() +
+  scale_y_continuous(expand = c(0,0)) +
+  xlab('') + ylab(' Number of tumours') +
+  theme_classic()
 dev.off()
 
 
+#barplot with mutation load in 5Mb bins across the genome
+#--> the same code was used to plot the mutation load across the genome for LUAD and LUSC
+BRCA_mutLoad <- cnMut_cnTotal.mutationLoad.bin(mutTable, binSize = 5000000, lspan = NA)
+colnames(BRCA_mutLoad)[3] <- 'stop'
+
+plot_data     <- rbind(data.frame(BRCA_mutLoad, cancerType = 'BRCA'))
+plot_data$bin <- paste(plot_data$chr, plot_data$start, plot_data$stop, sep = ':')
+bins_to_use   <- plot_data$bin #--> overlap bins from LUAD, LUSC and BRCA and only use those. The bins vary slightly because of the genome build hg19 used for BRCA and hg38 used for LUAD and LUSC
+
+plot_data$chr <- factor(plot_data$chr, levels = paste0('chr', c(1:22)))
+plot_data$bin <- factor(paste(plot_data$chr, plot_data$start, plot_data$stop, sep = ':'), levels = bins_to_use)
+plot_data$col <- 'straight'
+plot_data$col[plot_data$chr %in% c(paste0('chr', c(1,3,5,7,9,11,13,15,17,19,21)))] <- 'odd'
+
+#get postions for lines and text
+temp <- plot_data[plot_data$cancerType == 'BRCA',]
+pos.lines <- cumsum(table(temp$chr))
+index.tick <- round(as.numeric(pos.lines - (table(temp$chr) / 2)))
+
+#create plot
+pdf(paste0(output_dir, 'mutLoad_alongGenome_5Mb_BRCA.pdf'), width = 10, height = 4)
+ggplot(plot_data, aes(x = bin, y = mutLoad, fill = col)) + 
+  geom_bar(stat = 'identity') + 
+  geom_vline(xintercept = pos.lines + 0.5, linetype = 'dashed', size = 0.2) +
+  facet_grid(cancerType ~ ., scale = "free") + 
+  scale_fill_manual(values = c('straight' = '#4d4d4d', 'odd' = '#bababa'), guide = F) +
+  scale_x_discrete(breaks = levels(plot_data$bin)[index.tick], labels = paste0('chr', c(1:22))) + 
+  scale_y_continuous(expand  = c(0,0)) +
+  xlab('5Mb Bins') + ylab('Mutation Load') +
+  ggtitle('') +
+  theme_bw() + 
+  theme(legend.position = 'none', panel.grid = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+dev.off()
+
+
+
 #------- Figure 1 E -------#
+#identify consereved replication timing regions only using ENCODE data (with NA values allowed)
+normal_cellLines <- c("HBEC3", "T2P", "TT1", "HMEC", "MCF10A", "BG02", "BJ", "HUVEC", "IMR90", "keratinocyte")
+ENCODE_cellLines <- c("GM06990", "GM12801", "GM12812", "GM12813", "GM12878", "K562", "SK-N-MC", "SK-N-SH",  "MCF-7", "T47D", "HeLa-S3", "BG02", "HUVEC",       
+                      "Caki2", "G401", "HepG2", "A549encode", "H460", "IMR90",  "LNCAP", "BJ", "keratinocyte")
+ENCODE_cellLines <- ENCODE_cellLines[ENCODE_cellLines %in% colnames(repTiming_hg19_df)]
+normal_cellLines <- normal_cellLines[normal_cellLines %in% ENCODE_cellLines]
+
+log2ratio_ENCODE <- repTiming_hg19_df[,c('chr', 'start', 'stop', ENCODE_cellLines)]
+log2ratio_ENCODE$mean <- rowMeans(log2ratio_ENCODE[,ENCODE_cellLines], na.rm = T)
+
+normal_log2ratio_ENCODE <- log2ratio_ENCODE[,c('chr', 'start', 'stop', normal_cellLines)]
+normal_log2ratio_ENCODE$repTiming           <- 'unknown'
+ww_nonConserved                         <- apply(normal_log2ratio_ENCODE[,normal_cellLines], 1, function(x) sum(sign(x[!is.na(x)]) > 0) > 0 & sum(sign(x[!is.na(x)]) < 0) > 0)
+normal_log2ratio_ENCODE$repTiming[ww_nonConserved] <- 'non conserved'
+ww_early                                <- apply(normal_log2ratio_ENCODE[,normal_cellLines], 1, function(x) sum(is.na(x)) == 0 && all(sign(x) > 0))
+normal_log2ratio_ENCODE$repTiming[ww_early] <- 'early'
+ww_late                                 <- apply(normal_log2ratio_ENCODE[,normal_cellLines], 1, function(x) sum(is.na(x)) == 0 && all(sign(x) < 0))
+normal_log2ratio_ENCODE$repTiming[ww_late]  <- 'late'
+
+log2ratio_ENCODE <- log2ratio_ENCODE %>% left_join(normal_log2ratio_ENCODE[,c('chr', 'start', 'stop', 'repTiming')])
+
+#plot pie chart
+plot_data <- normal_log2ratio_ENCODE %>%
+  filter(repTiming != 'unknown') %>%
+  group_by(repTiming) %>%
+  summarise(count = n()) %>%
+  mutate(fraction = count / sum(count) * 100) %>%
+  mutate(cumulative = cumsum(fraction),
+         midpoint = cumulative - fraction / 2,
+         label = paste0(round(fraction,1), '%'))
+
+
+pdf(paste0(output_dir, 'pie_conservedRT_normalCells_ENCODE.pdf'), width = 5, height = 4)
+ggplot(plot_data, aes(x = 1, weights = fraction, fill = repTiming)) +
+  geom_bar(width = 1, position = position_stack(reverse = T), colour = 'white') +
+  coord_polar(theta = "y") +
+  scale_fill_manual(name = 'Replication Timing', values = c('early' = '#c51b7d', 'late' = '#4d9221', 'non conserved' = '#bababa')) +
+  geom_text(aes(x = rev(c(0.9, 1, 1.1)), y = midpoint, label = label), size = 5, colour = c('white', 'white', 'black')) + 
+  xlab('') + ylab('') +
+  ggtitle(paste0('Conserved Replication Timing\nin Normal Cells')) +
+  theme_void() + 
+  theme(axis.text.y = element_blank(), plot.title = element_text(hjust = 0.5), legend.position = 'top')
+dev.off()
 
 
 
 #------- Figure 1 F -------#
+
+#calculate mutation load in 50kb bins
+#--> the same code was used for LUAD and LUSC
+BRCA_mutLoad <- cnMut_cnTotal.mutationLoad.bin(mutTable, binSize = 50000, lspan = NA)
+
+#explained variance of model between mutation load and consereved or non consereved regions
+#--> the same code was used to calculate and plot the variance explained in LUAD and LUSC
+corr_BRCA <- log2ratio_ENCODE %>%
+  select(chr, start, stop, mean, repTiming) %>%
+  dplyr::filter(repTiming %in% c('early', 'late', 'non conserved')) %>% 
+  left_join(BRCA_mutLoad, by = c('chr', 'start', 'stop' = 'end'))
+
+corr_conserved_BRCA    <- summary(lm(mutLoad ~ mean, data = corr_BRCA[corr_BRCA$repTiming != 'non conserved',]))$r.squared
+corr_nonconserved_BRCA <- summary(lm(mutLoad ~ mean, data = corr_BRCA[corr_BRCA$repTiming == 'non conserved',]))$r.squared
+
+#plot
+plot_data <- rbind(data.frame(cancerType = 'BRCA', type = c('conserved', 'non conserved'), value = c(corr_conserved_BRCA, corr_nonconserved_BRCA)))
+
+pdf(paste0(output_dir, 'bar_r2_mutLoad_conservedRT_ENCODEonly.pdf'), width = 5, height = 4)
+ggplot(plot_data, aes(x = cancerType, y = value, fill = type)) + 
+  geom_bar(stat = 'identity', position = 'dodge', colour = 'white') + 
+  scale_y_continuous(expand = c(0,0, 0.01, 0)) +
+  scale_fill_manual(name = 'RT in normal cells', values = c('conserved' = 'black', 'non conserved' = 'gray')) +
+  xlab('') + ylab('variance in mutation load explained by log2(E/L)') +
+  theme_bw() + theme(panel.grid = element_blank())
+dev.off()
 
 
 
 #------- Figure 1 G -------#
 
 #heatmap with  euclidean distance and ward.2 criterion
+log2ratio_df    <- repTiming_hg19_df
 cluster_method  <- 'ward.D2'
 dist_matrix     <- dist(t(log2ratio_df[,-1*c(1:3)]))
 hc              <- hclust(dist_matrix, method = cluster_method)
@@ -207,8 +385,8 @@ rownames(annotation_row) <- annotation_row$cellLine
 annotation_row <- annotation_row[,-1, drop = F]
 
 annotation_row$colour <- 'black'
-annotation_row$colour[ annotation_row$AnalysisGroup == 'LUAD'] <- '#b2182b'
-annotation_row$colour[ annotation_row$AnalysisGroup == 'LUSC'] <- '#2166ac'
+annotation_row$colour[ annotation_row$AnalysisGroup == 'LUAD'] <- '#4292c6'
+annotation_row$colour[ annotation_row$AnalysisGroup == 'LUSC'] <- '#41ab5d'
 annotation_row$colour[ annotation_row$AnalysisGroup == 'BRCA'] <- '#fd8d3c'
 
 
