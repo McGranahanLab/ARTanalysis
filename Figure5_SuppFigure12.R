@@ -11,7 +11,6 @@
 options(stringsAsFactors = F)
 library(CNTools)
 library(TCGA2STAT)
-library(ggplot2)
 library(BSgenome)
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(GenomicRanges)
