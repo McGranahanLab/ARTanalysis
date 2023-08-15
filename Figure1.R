@@ -1,5 +1,5 @@
 ############################################################################################################
-#############               Hierarchical clustering of RT signal of 30 cell-lines              ############# 
+#############               Hierarchical clustering of RT signal of 31 cell-lines              ############# 
 ############################################################################################################
 # written by Michelle Dietzen (m.dietzen@ucl.ac.uk) and run in R version 3.5.1
 
@@ -43,7 +43,7 @@ tissue_info$cellLine <- sub('A549rep', 'A549', tissue_info$cellLine)
 #read in cell-line mutations
 mutTable <- readRDS(paste0(data_dir, '/mutTable_DepMap_20210802.rds'))
 
-#read in replication timing signal (log2-ratio) for the 30 cell-lines
+#read in replication timing signal (log2-ratio) for the 31 cell-lines
 repTiming_hg19_df <- readRDS(paste0(data_dir, '/cohort_50kb_l2r.rds'))
 
 
@@ -165,7 +165,7 @@ cnMut_cnTotal.mutationLoad.bin <- function(sample.mutTable,
 ############################
 
 #------- Figure 1 A -------#
-#--> the same code was used to create Figure 1 B-C for LUAD and LUSC
+#--> the same code was used to create Figure 1 B for LUAD
 
 #calculate mutation frequency in gained, lost and neutral genomic regions per sample
 cn_mutLoad_perSample <- lapply(unique(copyNumber_df$sample), function(x){
@@ -203,13 +203,13 @@ dev.off()
 #------- Figure 1 D -------#
 
 #barplot with number of tumours
-plot_data <- data.frame(cancerType = c('BRCA', 'LUAD', 'LUSC'), 
-                        value = c(482, 470, 319))
+plot_data <- data.frame(cancerType = c('BRCA', 'LUAD'), 
+                        value = c(482, 470))
 
 pdf(paste0(output_dir, 'bar_nTumours_cancerType.pdf'), width = 4, height = 3, useDingbats = F)
 ggplot(plot_data, aes(x = cancerType, y = value, fill = cancerType)) + 
   geom_bar(stat = 'identity') + 
-  scale_fill_manual(values = c('LUAD' = '#4292c6', 'LUSC' = '#41ab5d', 'BRCA' = '#fd8d3c'), guide = F) +
+  scale_fill_manual(values = c('LUAD' = '#4292c6', 'BRCA' = '#fd8d3c'), guide = F) +
   geom_text(aes(label = value), colour = 'white', position = position_stack(vjust = 0.5)) +
   coord_flip() +
   scale_y_continuous(expand = c(0,0)) +
@@ -219,13 +219,13 @@ dev.off()
 
 
 #barplot with mutation load in 5Mb bins across the genome
-#--> the same code was used to plot the mutation load across the genome for LUAD and LUSC
+#--> the same code was used to plot the mutation load across the genome for LUAD
 BRCA_mutLoad <- cnMut_cnTotal.mutationLoad.bin(mutTable, binSize = 5000000, lspan = NA)
 colnames(BRCA_mutLoad)[3] <- 'stop'
 
 plot_data     <- rbind(data.frame(BRCA_mutLoad, cancerType = 'BRCA'))
 plot_data$bin <- paste(plot_data$chr, plot_data$start, plot_data$stop, sep = ':')
-bins_to_use   <- plot_data$bin #--> overlap bins from LUAD, LUSC and BRCA and only use those. The bins vary slightly because of the genome build hg19 used for BRCA and hg38 used for LUAD and LUSC
+bins_to_use   <- plot_data$bin #--> overlap bins from LUAD and BRCA and only use those. The bins vary slightly because of the genome build hg19 used for BRCA and hg38 used for LUAD
 
 plot_data$chr <- factor(plot_data$chr, levels = paste0('chr', c(1:22)))
 plot_data$bin <- factor(paste(plot_data$chr, plot_data$start, plot_data$stop, sep = ':'), levels = bins_to_use)
@@ -257,7 +257,7 @@ dev.off()
 
 #------- Figure 1 E -------#
 #identify consereved replication timing regions only using ENCODE data (with NA values allowed)
-normal_cellLines <- c("HBEC3", "T2P", "TT1", "HMEC", "MCF10A", "BG02", "BJ", "HUVEC", "IMR90", "keratinocyte")
+normal_cellLines <- c("T2P", "TT1", "HMEC", "MCF10A", "BG02", "BJ", "HUVEC", "IMR90", "keratinocyte")
 ENCODE_cellLines <- c("GM06990", "GM12801", "GM12812", "GM12813", "GM12878", "K562", "SK-N-MC", "SK-N-SH",  "MCF-7", "T47D", "HeLa-S3", "BG02", "HUVEC",       
                       "Caki2", "G401", "HepG2", "A549encode", "H460", "IMR90",  "LNCAP", "BJ", "keratinocyte")
 ENCODE_cellLines <- ENCODE_cellLines[ENCODE_cellLines %in% colnames(repTiming_hg19_df)]
@@ -305,11 +305,11 @@ dev.off()
 #------- Figure 1 F -------#
 
 #calculate mutation load in 50kb bins
-#--> the same code was used for LUAD and LUSC
+#--> the same code was used for LUAD
 BRCA_mutLoad <- cnMut_cnTotal.mutationLoad.bin(mutTable, binSize = 50000, lspan = NA)
 
 #explained variance of model between mutation load and consereved or non consereved regions
-#--> the same code was used to calculate and plot the variance explained in LUAD and LUSC
+#--> the same code was used to calculate and plot the variance explained in LUAD
 corr_BRCA <- log2ratio_ENCODE %>%
   select(chr, start, stop, mean, repTiming) %>%
   dplyr::filter(repTiming %in% c('early', 'late', 'non conserved')) %>% 
@@ -379,14 +379,12 @@ driver_matrix[rownames(driver_matrix) == 'A549encode',] <- driver_matrix[rowname
 #annotation row
 annotation_row <- data.frame(cellLine = colnames(mat), AnalysisGroup = NA)
 annotation_row$AnalysisGroup[annotation_row$cellLine %in% c('T2P', 'H1650', 'H1792', 'H2009', 'A549')] <- 'LUAD'
-annotation_row$AnalysisGroup[annotation_row$cellLine %in% c('HBEC3', 'H2170', 'H520', 'SW900')] <- 'LUSC'
 annotation_row$AnalysisGroup[annotation_row$cellLine %in% c('HMEC', 'MDA453', 'SK-BR3', 'MCF-7', 'T47D')] <- 'BRCA'
 rownames(annotation_row) <- annotation_row$cellLine
 annotation_row <- annotation_row[,-1, drop = F]
 
 annotation_row$colour <- 'black'
 annotation_row$colour[ annotation_row$AnalysisGroup == 'LUAD'] <- '#4292c6'
-annotation_row$colour[ annotation_row$AnalysisGroup == 'LUSC'] <- '#41ab5d'
 annotation_row$colour[ annotation_row$AnalysisGroup == 'BRCA'] <- '#fd8d3c'
 
 
@@ -427,7 +425,7 @@ dev.off()
 
 
 #calculate stability of clustering
-clusterStability <- clusterboot(dist_matrix, B = 100, bootmethod = 'boot', clustermethod = disthclustCBI, method = cluster_method, k = 2, seed = 123)
+clusterStability <- clusterboot(dist_matrix, B = 1000, bootmethod = 'boot', clustermethod = disthclustCBI, method = cluster_method, k = 2, seed = 123)
 write.table(clusterStability$bootmean, file = paste0(output_dir, 'bootmean_jaccard_', cluster_method, '_all.txt'), quote = F, row.names = F, col.names = F)
 
 

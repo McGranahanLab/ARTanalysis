@@ -4,8 +4,8 @@
 # written by Michelle Dietzen (m.dietzen@ucl.ac.uk) and run in R version 3.5.1
 
 # Description:
-# Script to create Figure 3 and SuppFigure 7  of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution".
-# --> BRCA data used as an example (LUAD and LUSC data Data from the 100,000 Genomes Project are held in a secure research environment and are available to registered users. 
+# Script to create Figure 3 and SuppFigure 7  of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution in breast and lung cancer".
+# --> BRCA data used as an example (LUAD Data from the 100,000 Genomes Project are held in a secure research environment and are available to registered users. 
 #     See https://www.genomicsengland.co.uk/research/academic for further information.)
 # Data accessibility statement can be found in the manuscript.
 
@@ -43,6 +43,12 @@ recurrentART      <- read.table(paste0(data_dir, '/BRCA_consistentARTregions.txt
 
 #load RT values in 50kb windows
 repTiming_df <- readRDS(paste0(data_dir, '/cohort_50kb_l2r.rds'))
+
+#load PDC ART
+PDC_ART_list <- readRDS(paste0(data_dir, '/PDC_ART.rds'))
+
+#load PDC mutTable
+PDC_mutTable <- readRDS(paste0(data_dir, '/PDC_mutTable.rds'))
 
 
 
@@ -281,7 +287,7 @@ averageBehaviour_genomicArea <- function(centers_df, repTiming_normal_cancer, mu
 #######     Main     #######
 ############################
 
-#--------- Figure 7 A ---------#
+#--------- SuppFigure 7 A ---------#
 BRCA_mutLoad <- cnMut_cnTotal.mutationLoad.bin(mutTable, lspan = NA)
 
 plot_data <- BRCA_mutLoad %>% 
@@ -304,7 +310,7 @@ dev.off()
 
 
 
-#--------- Figure 7 B ---------#
+#--------- Figure 3 A ---------#
 consistent_repTiming_df <- recurrentART
 cellLines               <- c('HMEC', 'MCF-7', 'MDA453', 'SK-BR3', 'T47D')
 repTiming_df            <- repTiming_df[,c('chr', 'start', 'stop', cellLines)]
@@ -335,10 +341,10 @@ dev.off()
 
 
 
-#--------- Figure 7 C ---------#
+#--------- Figure 3 C ---------#
 #calculate mutation load
-clonal_mutTable   <- mutTable[!is.na(mutTable$absolute.ccf),]
-clonal_mutTable   <- clonal_mutTable[clonal_mutTable$absolute.ccf > 0.95,]
+clonal_mutTable   <- mutTable[!is.na(mutTable$absolute.ccf.0.95),]
+clonal_mutTable   <- clonal_mutTable[clonal_mutTable$absolute.ccf.0.95 >= 1,]
 mutLoad           <- cnMut_cnTotal.mutationLoad.bin(clonal_mutTable, lspan = NA)
 
 # sample 1000 bins from each category 10000 times (boostrapping) #
@@ -364,9 +370,7 @@ dev.off()
 
 
 
-
-
-#--------- SuppFigure 7 ---------#
+#--------- SuppFigure 7 B-D ---------#
 #calculate mutation load per subtype
 # SK-BR3 = HER2+ #
 samples <- clinical_data$sample_name[which(clinical_data$final.ER == 'negative' & clinical_data$final.PR == 'negative' & clinical_data$final.HER2 == 'positive')]
@@ -493,6 +497,163 @@ ggplot(nMuts_perPatient, aes(x = subtype, y = nMuts)) +
   theme_bw() + theme(legend.position = 'none', panel.grid = element_blank())
 dev.off()
 
+
+
+#--------- SuppFigure 7 E ---------#
+
+#calculate mutation load per patient
+patients <- unique(clonal_mutTable$Sample)
+mutLoad_perPatient <- cnMut_cnTotal.mutationLoad.bin(clonal_mutTable[clonal_mutTable$Sample == patients[1],], lspan = NA)
+mutLoad_perPatient <- mutLoad_perPatient %>% select(-mutCount)
+colnames(mutLoad_perPatient)[ncol(mutLoad_perPatient)] <- patients[1]
+
+for(p in patients[-1]){
+  print(p)
+  mutLoad_patient    <- cnMut_cnTotal.mutationLoad.bin(clonal_mutTable[clonal_mutTable$Sample == p,], lspan = NA)
+  mutLoad_perPatient <- cbind(mutLoad_perPatient, mutLoad_patient$mutLoad)
+  colnames(mutLoad_perPatient)[ncol(mutLoad_perPatient)] <- p
+}
+
+# sample 1000 bins from each category 10000 times #
+meanMutLoad_df <- lapply(colnames(mutLoad_perPatient)[-1*c(1:5)], function(x){
+  data_input <- mutLoad_perPatient[,c(colnames(mutLoad_perPatient)[1:5], x)]
+  colnames(data_input)[6] <- "mutLoad"
+  data <- meanMutload_distribution_sampling(data_input, overlap_repTiming, zTrans = T)
+  data$sample <- x
+  return(data)
+})
+meanMutLoad_df <- Reduce(rbind, meanMutLoad_df)
+
+# calculate avergae fraction of mutations calculated prior to ART per patient
+ARTtiming <- meanMutLoad_df %>%
+  group_by(sample) %>%
+  summarise(early = mean(early, na.rm = T),
+            later = mean(later, na.rm = T),
+            late = mean(late, na.rm = T),
+            earlier = mean(earlier, na.rm = T)) %>%
+  mutate(diff_early_late = abs(early - late),
+         earlier_timing = abs(earlier - early) / diff_early_late,
+         later_timing = abs(late - later) / diff_early_late)
+
+
+# calculate bootstrap p-value
+stats_test <- lapply(unique(meanMutLoad_df$sample), function(x){
+  sub_data <- meanMutLoad_df %>% filter(sample == x)
+  p_value  <- sum(sub_data$late <= sub_data$early) / nrow(sub_data)
+  data.frame(sample = x, pvalue = p_value)
+})
+stats_test <- Reduce(rbind, stats_test)
+
+ARTtiming <- ARTtiming %>%
+  left_join(stats_test, by = sample)
+
+ARTtiming <- ARTtiming %>%
+  mutate(adj_earlier_timing = ifelse(earlier_timing > 1, 1, earlier_timing),
+         adj_later_timing = ifelse(later_timing > 1, 1, later_timing))
+
+
+# plot pie with fraction of samples with significant bootstrap p-values
+plot_data <- stats_test %>%
+  mutate(group = ifelse(pvalue < 0.001, "p<0.001", "p>=0.001")) %>%
+  count(group) %>%
+  mutate(fraction = n / sum(n)) %>%
+  mutate(ypos = cumsum(fraction)- 0.5*fraction )
+
+pdf(paste0(output_dir, "pie_signifPatients_BRCA.pdf"), width = 5, height = 5)
+ggplot(plot_data, aes(x="", y=fraction, fill=group)) +
+  geom_bar(stat="identity", width=1, color="white", position = position_stack(reverse = T)) +
+  coord_polar("y", start=0) +
+  theme_void() + 
+  ggtitle("BRCA patients with a significant\ngreater mutation load in late \nthan early RT regions") +
+  geom_label(aes(y = ypos, label = n), color = c("white", "black"), size=6) +
+  scale_fill_manual(name = "boostrap test", values = c("p>=0.001" = "#bababa", "p<0.001" = '#b2182b')) +
+  theme(plot.title = element_text(hjust = 0.5))
+dev.off()
+
+#--------- Figure 3 D ---------#
+#--> shown here for BRCA but due to too low numbers of signficant tumours, 
+#    only results fro LUAD are shown in manuscript
+
+#plot boxplot with adjusted timing estimates
+plot_data <- ARTtiming %>%
+  filter(!is.na(pvalue)) %>%
+  filter(pvalue < 0.001)
+
+plot_data <- reshape2::melt(plot_data %>% 
+                              select(adj_earlier_timing,
+                                     adj_later_timing,
+                                     sample),
+                            id.vars = c("sample"))
+
+pdf(paste0(output_dir, "box_ARTtiming_BRCA.pdf"), width = 5, height = 5)
+ggplot(plot_data, aes(x = variable, y = value, fill = variable)) +
+  geom_line(aes(group = sample), colour = 'gray', lpha = 0.5) +
+  ggbeeswarm::geom_quasirandom(aes(colour = variable), alpha = 0.8) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  scale_fill_manual(name = "ARTtiming",
+                    values = c("adj_earlier_timing" = brewer.pal(n = 11, "PiYG")[3],
+                               "adj_later_timing" = brewer.pal(n = 11, "PiYG")[9])) +
+  scale_colour_manual(name = "ARTtiming",
+                    values = c("adj_earlier_timing" = brewer.pal(n = 11, "PiYG")[3],
+                               "adj_later_timing" = brewer.pal(n = 11, "PiYG")[9])) +
+  scale_x_discrete(labels = c("late->early", "early->late")) +
+  xlab("") +
+  ylab("ART timing estimate") +
+  ggtitle("ART timing per significant BRCA patient") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") 
+dev.off()
+
+  
+
+#--------- Figure 3 E-D ---------#
+
+#bar plot of ART in PDCs has been calculated and plotted in the same way as the LUAD and BRCA cell lines
+#shown in Figure 2B
+
+#subset for clonal mutations
+PDC_mutTable   <- PDC_mutTable[!is.na(PDC_mutTable$absolute.ccf.0.95),]
+PDC_mutTable   <- PDC_mutTable[PDC_mutTable$absolute.ccf.0.95 >= 1,]
+
+#calculate mutation load
+CRUK0557_mutLoad <- cnMut_cnTotal.mutationLoad.bin(PDC_mutTable %>% filter(patient == "CRUK0557-CL"), lspan = NA)
+CRUK0977_mutLoad <- cnMut_cnTotal.mutationLoad.bin(PDC_mutTable %>% filter(patient == "CRUK0977-CL"), lspan = NA)
+
+#sample 1000 bins from each category 10000 times
+CRUK0557_meanMutLoad_df <- meanMutload_distribution_sampling(CRUK0557_mutLoad, PDC_ART_list[["CRUK0557-CL"]], zTrans = T)
+CRUK0977_meanMutLoad_df <- meanMutload_distribution_sampling(CRUK0977_mutLoad, PDC_ART_list[["CRUK0977-CL"]], zTrans = T)
+
+#plot mirrored distributions
+plot_data <- rbind(data.frame(CRUK0557_meanMutLoad_df, patient = "CRUK0557"),
+                   data.frame(CRUK0977_meanMutLoad_df, patient = "CRUK0977"))
+
+colours <- brewer.pal(n = 11, 'PiYG')[c(2,3,9,10)]
+
+pdf(paste0(output_dir, 'mirrorDist_meanMutload_paired_RT_muts.pdf'), width = 7, height = 4)
+ggplot(plot_data) + 
+  geom_density(aes(x = early, y = ..density..), fill = colours[1], colour = colours[1], alpha = 0.8) +
+  geom_density(aes(x = late, y = ..density..), fill = 'white', colour = colours[4], linetype = 'dashed') +
+  geom_density(aes(x = earlier, y = ..density..), fill = colours[2], colour = colours[2], alpha = 0.8) +
+  geom_density(aes(x = early, y = -..density..), fill = 'white', colour = colours[1], linetype= 'dashed') +
+  geom_density(aes(x = late, y = -..density..), fill = colours[4], colour = colours[4], alpha = 0.8) +
+  geom_density(aes(x = later, y = -..density..), fill = colours[3], colour = colours[3], alpha = 0.8) +
+  geom_hline(yintercept = 0) +
+  facet_grid(. ~ patient) + 
+  scale_y_continuous(expand = c(0.05,0,0.05,0), breaks = c(-10, 0, 10), labels = c(10, 0, 10)) +
+  xlab('z-transformed mean(mutLoad)') + 
+  ggtitle("Paired RT and Mutations in PDCs") +
+  theme_bw() + theme(panel.grid = element_blank())
+dev.off()
+
+#calculate difference between ART and RT peaks as ART evolutionary timing estimate
+timing_estimates <- plot_data %>%
+  group_by(patient) %>%
+  mutate(earlier_timing = abs(early - earlier),
+         later_timing = abs(late - later)) %>%
+  summarise(earlier_timing = mean(earlier_timing),
+            later_timing = mean(later_timing))
 
 
 

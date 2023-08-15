@@ -1,10 +1,10 @@
-#################################################################################################################################
-#############               Analysis of altered replication timing (ART) regions in BRCA, LUAD and LUSC             ############# 
-#################################################################################################################################
+##########################################################################################################################
+#############               Analysis of altered replication timing (ART) regions in BRCA and LUAD            ############# 
+##########################################################################################################################
 # written by Michelle Dietzen (m.dietzen@ucl.ac.uk) and run in R version 3.5.1
 
 # Description:
-# Script to create Figure 2 and SuppFigure 4 - 6 of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution".
+# Script to create Figure 2 and SuppFigure 5 - 6 of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution".
 # Data accessibility statement can be found in the manuscript.
 
 #library and options
@@ -17,6 +17,7 @@ library(RColorBrewer)
 library(grid)
 library(gridExtra)
 library(ComplexUpset)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 
 
 #parameters
@@ -24,16 +25,19 @@ data_dir   <- '.' #set full path to the directory where the data for this analys
 output_dir <- '.' #set full path to the directory where the results for this analysis should be saved
 
 
-
 #load altered replication timing regions
-ARTregions_list <- readRDS(paste0(data_dir, '/ARTregions.rds'))
+ARTregions_list <- readRDS(paste0(data_dir, 'ARTregions.rds'))
 
 #load ART regions identfied with wrong normals
-TT1_artRegions_list   <- readRDS(paste0(data_dir, 'TT1_ARTregions.rds'))
-IMR90_artRegions_list <- readRDS(paste0(data_dir, 'IMR90_ARTregions.rds'))
+TT1_artRegions_list     <- readRDS(paste0(data_dir, 'TT1_ARTregions.rds'))
+IMR90_artRegions_list   <- readRDS(paste0(data_dir, 'IMR90_ARTregions.rds'))
+MCF10A_artRegions_list  <- readRDS(paste0(data_dir, 'MCF10A_ARTregions.rds'))
 
 #load RT values in 50kb windows
 repTiming_df <- readRDS(paste0(data_dir, '/cohort_50kb_l2r.rds'))
+
+#load overlapping ART regions
+overlapping_ARTregions_list <- readRDS(paste0(data_dir, 'overlappingART.rds'))
 
 
 
@@ -310,14 +314,28 @@ check_random_overlaps <- function(ARTregions_list, niter = 1000){
   return(iterations)
 }
 
-
+#function to calculate ART fraction per chromsome 
+ART_perChrom <- function(ART_df){
+  
+  #summarise size of chromsomes covered and presenting ART
+  summary_ART_df <- ART_df %>%
+    group_by(chr, ARTclass) %>%
+    summarise(size = sum(stop - start)) %>%
+    group_by(chr) %>%
+    mutate(fraction = size / sum(size),
+           ARTclass = ARTclass, 
+           percentage = fraction * 100)
+  
+  #output
+  return(summary_ART_df)
+}
 
 
 ############################
 #######     Main     #######
 ############################
 
-#-------- Figure 2 A and SuppFigure 4 --------#
+#-------- Figure 2 A and SuppFigure 6 --------#
 ARTregions_df <- Reduce(rbind, ARTregions_list)
 
 ARTclass_fractions <-c()
@@ -352,13 +370,68 @@ for(x in unique(ARTregions_df$normal_cancer)){
   ARTclass_fractions  <- rbind(ARTclass_fractions, fractions_df)
 }
 
+#calculate fraction of ART per chromosome
+LUAD_ARTregion_list <- ARTregions_list[c("H1650", "H1792", "H2009", "A549")]
+LUAD_ART_perChr <- lapply(LUAD_ARTregion_list, function(x){
+  cellLine <- sub(paste0('T2P-'), '', x$normal_cancer[1])
+  summary_fraction <- ART_perChrom(x)
+  summary_fraction$cellLine <- cellLine
+  summary_fraction$cancerType <- 'LUAD'
+  return(summary_fraction)
+})
+LUAD_ART_perChr <- Reduce(rbind, LUAD_ART_perChr)
+
+BRCA_ARTregion_list <- ARTregions_list[c("SK-BR3", "MCF-7", "T47D", "MDA453")]
+BRCA_ART_perChr <- lapply(BRCA_ARTregion_list, function(x){
+  cellLine <- sub(paste0('HMEC-'), '', x$normal_cancer[1])
+  summary_fraction <- ART_perChrom(x)
+  summary_fraction$cellLine <- cellLine
+  summary_fraction$cancerType <- 'BRCA'
+  return(summary_fraction)
+})
+BRCA_ART_perChr <- Reduce(rbind, BRCA_ART_perChr)
+
+#plot
+ART_perChr <- rbind(LUAD_ART_perChr, BRCA_ART_perChr)
+plot_data <- ART_perChr %>%
+  filter(ARTclass != 'not_altered') %>%
+  group_by(chr, cancerType, ARTclass) %>%
+  summarise(mean = mean(percentage), 
+            sd = sd(percentage)) %>%
+  mutate(cancerType = factor(cancerType, levels = c('LUAD', 'BRCA')),
+         ARTclass = sub('earlier', 'late-to-early', ARTclass),
+         ARTclass = sub('later', 'early-to-late', ARTclass))
+
+p <- ggplot(plot_data, aes(x = chr, y = mean, fill = cancerType)) + 
+  geom_bar(stat = 'identity', position = position_dodge()) + 
+  geom_errorbar(aes(ymin = ifelse(mean - sd < 0, 0, mean - sd), ymax = mean + sd, colour = cancerType), position = position_dodge(width = 0.9), width = 0.5) + 
+  scale_fill_manual(name = 'Cancer Type', values = c('LUAD' = '#4292c6', 'BRCA' = '#fd8d3c')) + 
+  scale_colour_manual(name = 'Cancer Type', values = c('LUAD' = '#08306b', 'BRCA' = '#7f2704')) + 
+  scale_y_continuous(expand = c(0,0,0,0.2)) +
+  xlab('') + ylab('mean(%ART) +/- sd(%ART)') +
+  facet_grid(ARTclass ~ .) + 
+  theme_bw() + theme(legend.position = 'top')
+
+g       <- ggplot_gtable(ggplot_build(p))
+striprt <- which(grepl('strip-r', g$layout$name) | grepl('strip-t', g$layout$name))
+colours <- c('#de77ae', '#7fbc41')
+k <- 1
+for (i in striprt) {
+  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- colours[k]
+  k <- k+1
+}
+
+pdf(paste0(output_dir, 'bar_ARTregions_perChr.pdf'), width = 10, height = 5)
+grid.draw(g)
+dev.off()
+
 
 
 #-------- Figure 2 B --------#
 ARTclass_fractions$cancerType <- 'BRCA'
 ARTclass_fractions$cancerType[ARTclass_fractions$normal == 'T2P']   <- 'LUAD'
-ARTclass_fractions$cancerType[ARTclass_fractions$normal == 'HBEC3'] <- 'LUSC'
-ARTclass_fractions$cancerType <- factor(ARTclass_fractions$cancerType, levels = c('LUAD', 'LUSC', 'BRCA'))
+ARTclass_fractions$cancerType <- factor(ARTclass_fractions$cancerType, levels = c('LUAD', 'BRCA'))
 
 plot_data          <- ARTclass_fractions[ARTclass_fractions$ARTclass != 'not_altered',]
 plot_data$ARTclass <- factor(plot_data$ARTclass, levels = c('earlier', 'later'))
@@ -378,7 +451,7 @@ ggplot(plot_data, aes(x = cancer, y = fraction, fill = ARTclass)) +
   scale_y_continuous(expand = c(0,0,0,0.2)) +
   xlab('') + ylab('% genome altered repTiming') + 
   labs(title = 'Altered Replication Timing Regions',
-       subtitle = '(References: LUAD = T2P, LUSC = HBEC3, BRCA = HMEC)') +
+       subtitle = '(References: LUAD = T2P, BRCA = HMEC)') +
   theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid = element_blank())
 dev.off()
 
@@ -496,7 +569,11 @@ dev.off()
 
 
 
-#-------- Figure 2 D and SuppFigure 5 --------#
+#-------- Figure 2 D and SuppFigure 5 A-H --------#
+#--> The same functions were used to create the plots for BRCA
+# cancer cell lines: MCF-7, MDA453, T47D, SK-BR3
+# normal cell lines: HMEC (tissue-of-origin) and MCF10A
+
 # Upset plots
 upset_plots <- lapply(c('H1650', 'H1792', 'H2009', 'A549'), function(x){
   
@@ -612,7 +689,7 @@ dev.off()
 
 
 
-#-------- Figure 2 E and SuppFigure 6 --------#
+#-------- Figure 2 E and SuppFigure 5 I-K --------#
 overlappingART_list <- readRDS(paste0(data_dir, 'overlappingART.rds'))
 
 #pie charts
@@ -647,15 +724,11 @@ dev.off()
 
 
 
-
-
 # upset-plots
 upsetPlots <- lapply(names(overlappingART_list), function(x){
   
   if(x == 'LUAD'){
     cancer <- c('H1650', 'H1792', 'H2009', 'A549')
-  } else if (x == 'LUSC'){
-    cancer <- c('H520', 'H2170', 'SW900')
   } else if (x == 'BRCA'){
     cancer <- c('MCF-7', 'MDA453', 'SK-BR3', 'T47D')
   }
@@ -681,11 +754,9 @@ dev.off()
 
 #check random overlapps
 LUAD_random_overlaps   <- check_random_overlaps(ARTregions_list[c('H1650', 'H1792', 'H2009', 'A549')])
-LUSC_random_overlaps   <- check_random_overlaps(ARTregions_list[c('H520', 'H2170', 'SW900')])
 BRCA_random_overlaps   <- check_random_overlaps(ARTregions_list[c('MCF-7', 'MDA453', 'SK-BR3', 'T47D')])
 
 LUAD_overlappingART <- overlappingART_list$LUAD
-LUSC_overlappingART <- overlappingART_list$LUSC
 BRCA_overlappingART <- overlappingART_list$BRCA
 
 LUAD_plot_data <- LUAD_random_overlaps %>%
@@ -696,14 +767,6 @@ LUAD_plot_data <- LUAD_random_overlaps %>%
   mutate(cancerType = 'LUAD') %>%
   mutate(observed = sum(LUAD_overlappingART$class %in% c('recurrent', 'shared')))
 
-LUSC_plot_data <- LUSC_random_overlaps %>%
-  mutate(overlap = recurrent + shared) %>%
-  summarise(mean = mean(overlap), 
-            lowCI = quantile(overlap, 0.025),
-            highCI = quantile(overlap, 0.975)) %>%
-  mutate(cancerType = 'LUSC') %>%
-  mutate(observed = sum(LUSC_overlappingART$class %in% c('recurrent', 'shared')))
-
 BRCA_plot_data <- BRCA_random_overlaps %>%
   mutate(overlap = recurrent + shared) %>%
   summarise(mean = mean(overlap), 
@@ -712,7 +775,7 @@ BRCA_plot_data <- BRCA_random_overlaps %>%
   mutate(cancerType = 'BRCA') %>%
   mutate(observed = sum(BRCA_overlappingART$class %in% c('recurrent', 'shared')))
 
-plot_data <- rbind(LUAD_plot_data, LUSC_plot_data, BRCA_plot_data)
+plot_data <- rbind(LUAD_plot_data, BRCA_plot_data)
 
 pdf(paste0(output_dir,'/random_ART_overlap_pointrange.pdf'), width = 5, height = 3, useDingbats = F)
 ggplot(plot_data) + 
@@ -816,21 +879,21 @@ ggplot(plot_data_lines, aes(x = start, y = value)) +
 dev.off()                   
 
 
-# unique LUSC #
-LUSC_overlappingART <- overlappingART_list$LUSC
-LUSC_overlappingART <- LUSC_overlappingART %>%
+# unique BRCA #
+BRCA_overlappingART <- overlappingART_list$BRCA
+BRCA_overlappingART <- BRCA_overlappingART %>%
   group_by(chr) %>%
   arrange(desc(start))
 
-unique_domains <- LUSC_overlappingART[LUSC_overlappingART$class == 'unique',]
+unique_domains <- BRCA_overlappingART[BRCA_overlappingART$class == 'unique',]
 unique_domains <- makeGRangesFromDataFrame(unique_domains)
 unique_domains <- reduce(unique_domains)
 unique_domains <- unique_domains[order(width(unique_domains), decreasing = T)]
 unique_domains <- as.data.frame(unique_domains)
 
-i <- 6
+i <- 1
 
-plot_data <- LUSC_overlappingART %>%
+plot_data <- BRCA_overlappingART %>%
   filter(chr == unique_domains$seqnames[i]) %>%
   filter(start > unique_domains$start[i] - 1000000) %>%
   filter(stop < unique_domains$end[i] + 1000000) %>%
@@ -840,22 +903,95 @@ plot_data[,grep('l2r', colnames(plot_data))] <- apply(plot_data[,grep('l2r', col
 
 plot_data_lines <- plot_data[,c('chr', 'start', 'stop', grep('l2r', colnames(plot_data), value = T))] %>%
   reshape2::melt(id.vars = c('chr', 'start', 'stop')) %>%
-  mutate(type = ifelse(variable == 'HBEC_l2r', 'normal', 'cancer'),
+  mutate(type = ifelse(variable == 'HMEC_l2r', 'normal', 'cancer'),
          variable = sub('_l2r', '', variable),
          start = start / 1000000)
 
 
-pdf(paste0(output_dir, '/LUSCexample_uniqueART.pdf'), width = 6, height = 3)
+pdf(paste0(output_dir, '/BRCAexample_uniqueART.pdf'), width = 6, height = 3)
 ggplot(plot_data_lines, aes(x = start, y = value)) + 
   geom_rect(xmin = unique_domains$start[i] / 1000000, xmax = unique_domains$end[i] / 1000000, ymin = -Inf, ymax = Inf, fill = '#bababa') +
   geom_hline(yintercept = 0) +
   geom_line(aes(colour = variable, linetype = variable), width = 2) + 
-  scale_colour_manual(name = 'Cell-line', values = c('HBEC3' = 'black', 'H520' = '#006d2c', 'H2170' = '#238b45', 'SW900' = '#41ab5d')) +
-  scale_linetype_manual(name = 'Cell-line', values = c('HBEC3' = 'dashed', 'H520' = 'solid', 'H2170' = 'solid', 'SW900' = 'solid')) +
+  scale_colour_manual(name = 'Cell-line', values = c('HMEC' = 'black', 'H520' = '#006d2c', 'H2170' = '#238b45', 'SW900' = '#41ab5d')) +
+  scale_linetype_manual(name = 'Cell-line', values = c('HMEC' = 'dashed', 'H520' = 'solid', 'H2170' = 'solid', 'SW900' = 'solid')) +
   scale_x_continuous(expand = c(0,0)) +
   xlab('Genomic Position (mb)') + ylab('RT signal') + 
-  ggtitle(paste0('LUSC - Unique ART on Chromsome ', sub('chr', '',  unique_domains$seqnames[1]))) +
+  ggtitle(paste0('BRCA - Unique ART on Chromsome ', sub('chr', '',  unique_domains$seqnames[1]))) +
   theme_bw() + theme(panel.grid = element_blank())
 dev.off()  
 
+
+#-------- Figure 2 F --------#
+#--> written by Haoran Zhai (haoran.zhai.17@ucl.ac.uk)
+
+# find % of genes per cancer: 
+overlap.geneProp.ART_list <- lapply(c("LUAD", "BRCA"), function(cancer){
+  print(cancer)
+  overlappingART <- overlapping_ARTregions_list[[cancer]]
+  #compare fraction of genes within 50kb windows across different replication timings
+  #get position of all genes
+  genesPos_gr       <- GenomicFeatures::genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
+  overlappingART_gr <- GRanges(seqnames = overlappingART$chr, IRanges(start = overlappingART$start + 1, end = overlappingART$stop))
+  overlap           <- findOverlaps(genesPos_gr, overlappingART_gr)
+  
+  #calculate fraction of gene overlap
+  intersects        <- pintersect(overlappingART_gr[subjectHits(overlap)], genesPos_gr[queryHits(overlap)])
+  intersects$index  <- subjectHits(overlap)
+  intersects_perBin <- lapply(unique(intersects$index), function(x){
+    tmp  <-intersects[intersects$index == x] %>% as.data.frame()
+    data <- GenomicRanges::reduce(intersects[intersects$index == x], ignore.strand = T)
+    dt   <- data.frame(index = x, overlap = sum(width(data)))
+  })
+  intersects_perBin <- Reduce(rbind, intersects_perBin)
+  
+  overlappingART$geneOverlap <- 0
+  overlappingART$geneOverlap[intersects_perBin$index] <- intersects_perBin$overlap
+  overlappingART$geneOverlapFrac <- overlappingART$geneOverlap / (overlappingART$stop - overlappingART$start)
+  overlappingART <- overlappingART %>% dplyr::mutate(cancerType = cancer)
+  return(overlappingART)
+})
+names(overlap.geneProp.ART_list) <- c("LUAD", "BRCA")
+
+# read data & make plots to show % of genes: 
+plot_data_raw <- data.frame()
+for (i in names(overlap.geneProp.ART_list)) {
+  dt <- overlap.geneProp.ART_list[[i]] %>% 
+    dplyr::select(timing, geneOverlapFrac, class, cancerType)
+  plot_data_raw <- rbind(plot_data_raw, dt)
+}
+
+# annot.col:
+annot.col <- list(RT = c(brewer.pal(11, 'PiYG')[c(2,9,3,10)]))
+names(annot.col$RT) <- c("early","later","earlier", "late")
+
+# plot:
+plot_data <- plot_data_raw %>% filter(class %in% c('not_altered', 'shared', 'recurrent'))
+comparisons <- list(c('early', 'later'),c('earlier', 'late')) 
+
+p.violin_gene.density <- plot_data %>% 
+  ggplot(aes(x=factor(timing,levels=c(names(annot.col$RT))), y = geneOverlapFrac, 
+             fill=factor(timing,levels=names(annot.col$RT)))) + 
+  geom_violin() +
+  geom_boxplot(outlier.shape = NA, alpha = 0.2) +
+  scale_fill_manual(name = 'Replication Timing', values = annot.col$RT) +
+  scale_colour_manual(name = 'Replication Timing', values = annot.col$RT) +
+  stat_compare_means(method = 'wilcox', label = 'p.signif',
+                     comparisons = comparisons) +
+  facet_grid(.~factor(cancerType, levels = cancer.types)) +
+  xlab('') + ylab('Gene proprotion within 50kb bins') +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12),
+        axis.text.y = element_text(size = 12, color = 'black'),
+        axis.title = element_text(size = 14, color = 'black'),
+        legend.text = element_text(size = 10, color = 'black'),
+        legend.title = element_text(size = 12, color = 'black', face = 'bold'),
+        plot.title = element_text(size = 15, color = 'black', face = 'bold'),
+        legend.position = 'none',
+        strip.text.x = element_text(size = 12),
+        panel.grid = element_blank())
+
+pdf(paste0(output_dir, 'geneProp.RT_violin.per.cancer.pdf'), width = 7, height = 5, useDingbats = F)
+print(p.violin_gene.density)
+dev.off()
 
