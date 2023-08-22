@@ -22,6 +22,7 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 library(GenomicRanges)
 library(ggnewscale)
 library(ggridges)
+library(readr)
 
 #parameters
 data_dir   <- '.' #set full path to the directory where the data for this analysis has been saved
@@ -51,6 +52,10 @@ log2ratio_df <- readRDS(paste0(data_dir, '/cohort_50kb_l2r.rds'))
 ART_list <- readRDS(paste0(data_dir, '/ARTregions.rds'))
 MCF7_ART <- ART_list[["MCF-7"]]
 T47D_ART <- ART_list[["T47D"]]
+
+#load BRCA intersect between Hi-C and ART
+BRCA_intersect_CC_ART <- read_tsv(paste0(data_dir, 'overlap_HiC_ART_BRCA.tsv'))
+LUAD_intersect_CC_ART <- read_tsv(paste0(data_dir, 'overlap_HiC_ART_LUAD.tsv'))
 
 
 
@@ -173,28 +178,42 @@ meanMutload_distribution_sampling <- function(mutLoad_df, altered_repTiming, ite
 ###############################
 
 #--------- Figure 4 A ---------#
-# written by Chris Barrington
-# compartments %>%
-#   filter(normal_cancer=='HMEC-T47D' | normal_cancer=='HMEC-MCF-7') %>%
-#   select(chrom, start, end, normal_cancer, timing_class, hic_cell_type, compartment) %>%
-#   unite(col=id, chrom,start,end) %>%
-#   mutate_at('normal_cancer', \(x) factor(x) |> fct_relabel(str_remove, pattern='HMEC-')) %>%
-#   mutate_at('hic_cell_type', \(x) factor(x) |> fct_recode(HMEC='hmec', Tumour='t47d', Tumour='mcf-7')) %>% 
-#   mutate_at('timing_class', \(x) factor(x) |> fct_relabel(str_to_title)) %>%
-#   ggplot() +
-#   aes(x=hic_cell_type, stratum=compartment, alluvium=id, fill=compartment, colour=compartment) +
-#   labs(x='Cell type (Hi-C)', y='Frequency', fill='Compartment') +
-#   geom_flow() +
-#   geom_stratum(colour='black') +
-#   scale_x_discrete(expand=c(0.4,0)) +
-#   scale_y_continuous(label=comma) +
-#   scale_colour_brewer(palette='Set2') +
-#   scale_fill_brewer(palette='Set2') +
-#   guides(colour='none', fill=guide_legend(title.position='top')) +
-#   facet_grid2(normal_cancer~timing_class, scales='free_y', independent='y') +
-#   theme(legend.position='bottom',
-#         axis.title.x=element_blank(),
-#         panel.border=element_rect(colour='black', fill=NA)) -> gg
+plot_data_normal <- BRCA_intersect_CC_ART %>%
+  dplyr::filter(hic_cell_type == "Normal") %>%
+  dplyr::select(chrom, start, end, normal_cancer, timing_class, hic_cell_type, compartment) %>%
+  tidyr::unite(col=id, chrom,start,end)
+
+plot_data_cancer <- BRCA_intersect_CC_ART %>%
+  filter(hic_cell_type == "Tumour") %>%
+  dplyr::select(chrom, start, end, normal_cancer, timing_class, hic_cell_type, compartment) %>%
+  tidyr::unite(col=id, chrom,start,end)
+  
+plot_data <- plot_data_normal %>%
+  left_join(plot_data_cancer, by = c("normal_cancer", "id", "timing_class")) %>%
+  dplyr::select(id, normal_cancer, timing_class, compartment.x, compartment.y) %>%
+  setNames(c("id", "normal_cancer", "timing_class", "compartment_normal", "compartment_cancer")) %>%
+  mutate(normal_cancer = sub("HMEC-", "", normal_cancer)) %>%
+  group_by(normal_cancer, timing_class, compartment_normal, compartment_cancer) %>%
+  summarise(count = n())
+
+plot_data$normal_cancer      <- factor(plot_data$normal_cancer, levels = c("MCF-7", "T47D"))
+plot_data$timing_class       <- factor(plot_data$timing_class, levels = c("earlier", "early", "late", "later"))
+plot_data$compartment_normal <- factor(plot_data$compartment_normal, levels = c("A", "B"))
+plot_data$compartment_cancer <- factor(plot_data$compartment_cancer, levels = c("A", "B"))
+
+pdf(paste0(output_dir, 'alluvial_CC_in_ART_perCellLine_BRCA.pdf'), width = 8, height = 6)
+ggplot(plot_data, aes(y = count, axis1 = compartment_normal, axis2 = compartment_cancer)) +
+  geom_alluvium(aes(fill = compartment_normal), width = 1/4) +
+  geom_stratum(width = 1/4, aes(fill = compartment_normal), color = "black") +
+  scale_x_discrete(limits = c("compartment_normal", "compartment_cancer"), expand = c(.2, .2), labels = c("normal", "tumour")) +
+  scale_fill_manual(name = '', values = c('A' = '#e08214', 'B' = '#35978f')) +
+  facet_wrap(normal_cancer~timing_class, scales='free_y', nrow = 2) +
+  guides(colour='none', fill=guide_legend(title.position='top')) +
+  theme_bw() +
+  theme(legend.position='bottom',
+        axis.title.x=element_blank(),
+        panel.border=element_rect(colour='black', fill=NA))
+dev.off()
 
 
 #--------- Figure 4 B-D ---------#
@@ -517,54 +536,30 @@ ggplot(plot_data, aes(x = coef, y = abs(estimate))) +
 dev.off()
 
 
-# #----------- Figure 4 F -----------#
-# 
-# get_compartment_frequency_barplot <- function(data) {
-#   data %>%
-#     mutate_at('hic_cell_type', \(x) factor(x) |> fct_relabel(str_to_upper)) %>%
-#     mutate_at('timing_class', \(x) factor(x) |> fct_relabel(str_to_title)) %>%
-#     ggplot() +
-#     aes(x=timing_class, fill=compartment) +
-#     labs(x='Timing class', y='Frequency', fill='Compartment') +
-#     geom_bar(position='dodge') +
-#     scale_x_discrete() +
-#     scale_y_continuous(label=comma) +
-#     scale_fill_brewer(palette='Set2') +
-#     guides(fill=guide_legend(title.position='top')) +
-#     facet_wrap(~hic_cell_type, scales='fixed') +
-#     theme(legend.position='bottom',
-#           axis.title.x=element_blank(),
-#           panel.border=element_rect(colour='black', fill=NA)) -> gg
-# }
-# 
-# luad_compartments %>%
-#   dlply(~rs_dataset, get_compartment_frequency_barplot) -> luad_compartment_barplots
-# 
-# 
-# #----------- Figure 4 G -----------#
-# 
-# get_compartment_proportion_barplot <- function(data) {
-#   data %>%
-#     group_by(hic_cell_type, timing_class, compartment) %>%
-#     summarise(n=n()) %>%
-#     mutate(N=sum(n)) %>%
-#     ungroup() %>%
-#     mutate_at('hic_cell_type', \(x) factor(x) |> fct_relabel(str_to_upper)) %>%
-#     mutate_at('timing_class', \(x) factor(x) |> fct_relabel(str_to_title)) %>%
-#     ggplot() +
-#     aes(x=timing_class, y=n/N*100, fill=compartment) +
-#     labs(x='Timing class', y='Proportion (%)', fill='Compartment') +
-#     geom_col() +
-#     scale_x_discrete() +
-#     scale_y_continuous() +
-#     scale_fill_brewer(palette='Set2') +
-#     guides(fill=guide_legend(title.position='top')) +
-#     facet_wrap(~hic_cell_type, scales='fixed') +
-#     theme(legend.position='bottom',
-#           axis.title.x=element_blank(),
-#           panel.border=element_rect(colour='black', fill=NA)) -> gg
-# }
-# 
-# luad_compartments %>%
-#   dlply(~rs_dataset, get_compartment_proportion_barplot) -> luad_compartment_proportion_barplots
-# 
+#----------- Figure 4 F-G -----------#
+plot_data <- LUAD_intersect_CC_ART %>%
+  group_by(timing_class) %>%
+  count(compartment) %>%
+  mutate(percent = (n / sum(n)) * 100)
+
+pdf(paste0(mutDist_output_dir, 'bar_compartments_ART_LUAD.pdf'), width = 5, height = 4)
+ggplot(plot_data, aes(x = timing_class, y = n, fill = compartment)) +
+  geom_bar(stat = "identity", position = "dodge", colour = 'black') +
+  scale_fill_manual(name = 'Compartment', values = c('A' = '#e08214', 'B' = '#35978f')) +
+  ylab('Number of 50kb bins') +
+  theme_bw() +
+  theme(legend.position='bottom',
+        axis.title.x=element_blank(),
+        panel.border=element_rect(colour='black', fill=NA))
+
+ggplot(plot_data, aes(x = timing_class, y = percent, fill = compartment)) +
+  geom_bar(stat = "identity", colour = 'black') +
+  scale_fill_manual(name = 'Compartment', values = c('A' = '#e08214', 'B' = '#35978f')) +
+  ylab('Proportion (%)') +
+  theme_bw() +
+  theme(legend.position='bottom',
+        axis.title.x=element_blank(),
+        panel.border=element_rect(colour='black', fill=NA))
+dev.off()
+
+
