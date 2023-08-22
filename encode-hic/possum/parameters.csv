@@ -1,0 +1,90 @@
+input_hic,resolution,output_subdir,output_file,parameters
+encode/insitu_hic/hmec/filtered_contact_matrix.hic,5000,5kb,default,
+encode/insitu_hic/t47d/filtered_contact_matrix.hic,5000,5kb,default,
+encode/intact_hic/hmec/filtered_contact_matrix.hic,5000,5kb,default,
+encode/intact_hic/mcf-7/filtered_contact_matrix.hic,5000,5kb,default,
+
+encode/insitu_hic/hmec/filtered_contact_matrix.hic,10000,10kb,default,
+encode/insitu_hic/t47d/filtered_contact_matrix.hic,10000,10kb,default,
+encode/intact_hic/hmec/filtered_contact_matrix.hic,10000,10kb,default,
+encode/intact_hic/mcf-7/filtered_contact_matrix.hic,10000,10kb,default,
+
+encode/insitu_hic/hmec/filtered_contact_matrix.hic,25000,25kb,default,
+encode/insitu_hic/t47d/filtered_contact_matrix.hic,25000,25kb,default,
+encode/intact_hic/hmec/filtered_contact_matrix.hic,25000,25kb,default,
+encode/intact_hic/mcf-7/filtered_contact_matrix.hic,25000,25kb,default,
+
+encode/insitu_hic/hmec/filtered_contact_matrix.hic,50000,50kb,default,
+encode/insitu_hic/t47d/filtered_contact_matrix.hic,50000,50kb,default,
+encode/intact_hic/hmec/filtered_contact_matrix.hic,50000,50kb,default,
+encode/intact_hic/mcf-7/filtered_contact_matrix.hic,50000,50kb,default,
+
+encode/insitu_hic/hmec/filtered_contact_matrix.hic,100000,100kb,default,
+encode/insitu_hic/t47d/filtered_contact_matrix.hic,100000,100kb,default,
+encode/intact_hic/hmec/filtered_contact_matrix.hic,100000,100kb,default,
+encode/intact_hic/mcf-7/filtered_contact_matrix.hic,100000,100kb,default,
+
+encode/insitu_hic/hmec/filtered_contact_matrix.hic,5000,5kb,scale,-n SCALE
+encode/insitu_hic/t47d/filtered_contact_matrix.hic,5000,5kb,scale,-n SCALE
+encode/intact_hic/hmec/filtered_contact_matrix.hic,5000,5kb,scale,-n SCALE
+encode/intact_hic/mcf-7/filtered_contact_matrix.hic,5000,5kb,scale,-n SCALE
+
+encode/insitu_hic/hmec/filtered_contact_matrix.hic,10000,10kb,scale,-n SCALE
+encode/insitu_hic/t47d/filtered_contact_matrix.hic,10000,10kb,scale,-n SCALE
+encode/intact_hic/hmec/filtered_contact_matrix.hic,10000,10kb,scale,-n SCALE
+encode/intact_hic/mcf-7/filtered_contact_matrix.hic,10000,10kb,scale,-n SCALE
+
+encode/insitu_hic/hmec/filtered_contact_matrix.hic,25000,25kb,scale,-n SCALE
+encode/insitu_hic/t47d/filtered_contact_matrix.hic,25000,25kb,scale,-n SCALE
+encode/intact_hic/hmec/filtered_contact_matrix.hic,25000,25kb,scale,-n SCALE
+encode/intact_hic/mcf-7/filtered_contact_matrix.hic,25000,25kb,scale,-n SCALE
+
+encode/insitu_hic/hmec/filtered_contact_matrix.hic,50000,50kb,scale,-n SCALE
+encode/insitu_hic/t47d/filtered_contact_matrix.hic,50000,50kb,scale,-n SCALE
+encode/intact_hic/hmec/filtered_contact_matrix.hic,50000,50kb,scale,-n SCALE
+encode/intact_hic/mcf-7/filtered_contact_matrix.hic,50000,50kb,scale,-n SCALE
+
+encode/insitu_hic/hmec/filtered_contact_matrix.hic,100000,100kb,scale,-n SCALE
+encode/insitu_hic/t47d/filtered_contact_matrix.hic,100000,100kb,scale,-n SCALE
+encode/intact_hic/hmec/filtered_contact_matrix.hic,100000,100kb,scale,-n SCALE
+encode/intact_hic/mcf-7/filtered_contact_matrix.hic,100000,100kb,scale,-n SCALE
+
+encode/insitu_hic/a549/filtered_contact_matrix.hic,5000,5kb,default,
+encode/insitu_hic/h460/filtered_contact_matrix.hic,5000,5kb,default,
+encode/insitu_hic/imr-90/filtered_contact_matrix.hic,5000,5kb,default,
+
+encode/insitu_hic/a549/filtered_contact_matrix.hic,10000,10kb,default,
+encode/insitu_hic/h460/filtered_contact_matrix.hic,10000,10kb,default,
+encode/insitu_hic/imr-90/filtered_contact_matrix.hic,10000,10kb,default,
+
+encode/insitu_hic/a549/filtered_contact_matrix.hic,25000,25kb,default,
+encode/insitu_hic/h460/filtered_contact_matrix.hic,25000,25kb,default,
+encode/insitu_hic/imr-90/filtered_contact_matrix.hic,25000,25kb,default,
+
+encode/insitu_hic/a549/filtered_contact_matrix.hic,50000,50kb,default,
+encode/insitu_hic/h460/filtered_contact_matrix.hic,50000,50kb,default,
+encode/insitu_hic/imr-90/filtered_contact_matrix.hic,50000,50kb,default,
+
+encode/insitu_hic/a549/filtered_contact_matrix.hic,100000,100kb,default,
+encode/insitu_hic/h460/filtered_contact_matrix.hic,100000,100kb,default,
+encode/insitu_hic/imr-90/filtered_contact_matrix.hic,100000,100kb,default,
+
+encode/insitu_hic/a549/filtered_contact_matrix.hic,5000,5kb,scale,-n SCALE
+encode/insitu_hic/h460/filtered_contact_matrix.hic,5000,5kb,scale,-n SCALE
+encode/insitu_hic/imr-90/filtered_contact_matrix.hic,5000,5kb,scale,-n SCALE
+
+encode/insitu_hic/a549/filtered_contact_matrix.hic,10000,10kb,scale,-n SCALE
+encode/insitu_hic/h460/filtered_contact_matrix.hic,10000,10kb,scale,-n SCALE
+encode/insitu_hic/imr-90/filtered_contact_matrix.hic,10000,10kb,scale,-n SCALE
+
+encode/insitu_hic/a549/filtered_contact_matrix.hic,25000,25kb,scale,-n SCALE
+encode/insitu_hic/h460/filtered_contact_matrix.hic,25000,25kb,scale,-n SCALE
+encode/insitu_hic/imr-90/filtered_contact_matrix.hic,25000,25kb,scale,-n SCALE
+
+encode/insitu_hic/a549/filtered_contact_matrix.hic,50000,50kb,scale,-n SCALE
+encode/insitu_hic/h460/filtered_contact_matrix.hic,50000,50kb,scale,-n SCALE
+encode/insitu_hic/imr-90/filtered_contact_matrix.hic,50000,50kb,scale,-n SCALE
+
+encode/insitu_hic/a549/filtered_contact_matrix.hic,100000,100kb,scale,-n SCALE
+encode/insitu_hic/h460/filtered_contact_matrix.hic,100000,100kb,scale,-n SCALE
+encode/insitu_hic/imr-90/filtered_contact_matrix.hic,100000,100kb,scale,-n SCALE
