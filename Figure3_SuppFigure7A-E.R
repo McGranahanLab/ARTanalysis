@@ -33,7 +33,7 @@ load(paste0(data_dir, '/560Breast_subset_mutTable.RData'))
 
 #download Supplementary Table 1 from  https://www.nature.com/articles/nature17676
 clinical_data <- read.table(paste0(data_dir, '/Supplementary Table 1 CLINICAL.PATHOLOGY.DATA.FREEZE.ANALYSIS.v4.032015.csv', sep = ',',  header = T))
-colnames(clinical_data) <- clinical_data[1,]
+colnames(clinical_data) <- as.character(clinical_data[1,])
 clinical_data           <- clinical_data[-1,]
 clinical_data           <- clinical_data[clinical_data$sample_name %in% mutTable$patient,]
 
@@ -49,7 +49,6 @@ PDC_ART_list <- readRDS(paste0(data_dir, '/PDC_ART.rds'))
 
 #load PDC mutTable
 PDC_mutTable <- readRDS(paste0(data_dir, '/PDC_mutTable.rds'))
-
 
 
 #################################

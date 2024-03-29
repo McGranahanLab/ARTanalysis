@@ -16,6 +16,7 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 library(RColorBrewer)
 library(grid)
 library(gridExtra)
+library(vroom)
 
 #parameters
 data_dir   <- '.' #set full path to the directory where the data for this analysis has been saved
@@ -43,7 +44,7 @@ normal_cellLines <- colnames(repTiming_df)[colnames(repTiming_df) %in% tissue_in
 ###     Functions      ###    
 ##########################
 
-#function to calculate corerlation between 2 replicates and plot 2d density plot
+#function to calculate correlation between 2 replicates and plot 2d density plot
 fun_corr_replicates <- function(rep1_file, rep2_file, title = NULL){
   rep1 <- data.frame(vroom(rep1_file, col_names = c('chr', 'start', 'stop', 'l2r.value')))
   rep2 <- data.frame(vroom(rep2_file, col_names = c('chr', 'start', 'stop', 'l2r.value')))
@@ -64,8 +65,28 @@ fun_corr_replicates <- function(rep1_file, rep2_file, title = NULL){
 ###     Main      ###    
 #####################
 
-#--------- SuppFigure 2 C---------#
-#--> A and B were plotted in the same way
+#--------- SuppFigure 2 A-C---------#
+p_raw <- lapply(1:length(replicates), function(i){
+  rep1 <- names(replicates[i])
+  rep2 <- as.character(replicates[i])
+  
+  rep1_file <- paste0(data_dir, rep1, '.l2r.bedGraph')
+  rep2_file <- paste0(data_dir, rep2, '.l2r.bedGraph')
+  
+  title <- paste0(rep1, ' loess smoothed Log2-Ratios')
+  fun_corr_replicates(rep1_file, rep2_file, title)
+})
+
+p_qnorm <- lapply(1:length(replicates), function(i){
+  rep1 <- names(replicates[i])
+  rep2 <- as.character(replicates[i])
+  
+  rep1_file <- paste0(data_dir, rep1, '.qnorm_l2r.bedGraph')
+  rep2_file <- paste0(data_dir, rep2, '.qnorm_l2r.bedGraph')
+  
+  title <- paste0(rep1, ' loess smoothed Log2-Ratios')
+  fun_corr_replicates(rep1_file, rep2_file, title)
+})
 
 p_loess <- lapply(1:length(replicates), function(i){
   rep1 <- names(replicates[i])
@@ -81,6 +102,8 @@ p_loess <- lapply(1:length(replicates), function(i){
 
 #plot
 pdf(paste0(output_dir, 'corr_replicates_50kb.pdf'), width = 4, height = 4)
+p_raw
+p_qnorm
 p_loess
 dev.off()
 

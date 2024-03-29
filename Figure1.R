@@ -178,7 +178,7 @@ cn_mutLoad_perSample <- lapply(unique(copyNumber_df$sample), function(x){
 })
 cn_mutLoad_perSample <- Reduce(rbind, cn_mutLoad_perSample)
 
-#boxplot and paired t-test
+#boxplot and paired wilcoxo-test
 plot_data <- reshape2::melt(cn_mutLoad_perSample, id.vars = c('sample', 'nMuts'))
 plot_data$variable <- sub('_mutDensity', '', plot_data$variable)
 plot_data$variable <- sub('noEvent', 'neutral', plot_data$variable)
@@ -198,6 +198,9 @@ ggplot(plot_data, aes(x = variable, y = value)) +
   theme_bw() +
   theme(legend.position = 'none', panel.grid = element_blank())
 dev.off()
+
+wilcox.test(cn_mutLoad_perSample$loss_mutDensity, cn_mutLoad_perSample$noEvent_mutDensity, paired = T, alternative = "less")$p.value
+wilcox.test(cn_mutLoad_perSample$noEvent_mutDensity, cn_mutLoad_perSample$gain_mutDensity, paired = T, alternative = "less")$p.value
 
 
 #------- Figure 1 D -------#
