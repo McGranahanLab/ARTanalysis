@@ -30,8 +30,11 @@ library(cowplot)
 data_dir   <- '.' #set full path to the directory where the data for this analysis has been saved
 output_dir <- '.' #set full path to the directory where the results for this analysis should be saved
 
-#load BRCA mutation data
-load(paste0(data_dir, '/560Breast_subset_mutTable.RData'))
+#load BRCA mutation data (file was too big, so had to be split in 3 to be uploaded)
+mutTable_1  <- readRDS(paste0(data_dir, '/560Breast_subset_mutTable_1.rds'))
+mutTable_2  <- readRDS(paste0(data_dir, '/560Breast_subset_mutTable_2.rds'))
+mutTable_3  <- readRDS(paste0(data_dir, '/560Breast_subset_mutTable_3.rds'))
+mutTable    <- rbind(mutTable_1, mutTable_2, mutTable_3)
 mutTable_gr <- GRanges(seqnames = mutTable$Chrom, IRanges(start = mutTable$Pos, end = mutTable$Pos))
 
 #load shared altered replication timing

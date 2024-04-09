@@ -24,7 +24,7 @@ library(writexl)
 library(tidyverse)
 library(dplyr)
 
-data_dir <- 
+data_dir <- "."
   
 #####################################################################
 ### Supplementary Figure 4A: compare conserved RT between those among 5 normal on ENCODE and those among 4 normal IN-HOUSE in this study) ========
