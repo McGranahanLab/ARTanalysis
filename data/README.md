@@ -1,6 +1,4 @@
-#-------------------------------------------------#
-#----------#    Data  descriptions     #----------#
-#-------------------------------------------------#
+# Data file descriptions
 
 For more detailed information about the data have a look at the methods section of the paper: "Replication timing alterations are associated with mutation acquisition during tumour evolution in breast and lung cancer" by Dietzen and Zhai et al.
 
@@ -10,11 +8,12 @@ For more detailed information about the data have a look at the methods section 
 * 20220203_Essential_lung.xlsx: List of essential lung genes
 
 * 20220203_pan.driver_og.tsg.csv: List of pan-cancer driver genes including tumour suppressor genes and oncogenes
-             * 20220203_pancan_drivers.csv: List of driver genes for different cancer types
+             
+* 20220203_pancan_drivers.csv: List of driver genes for different cancer types
 
 * 20220203_lung_drivers.csv: List of genes identified as driver genes for lung cancer                          
 
-*20220208_breast.driver.csv: List of genes identified as driver genes for breast cancer  
+* 20220208_breast.driver.csv: List of genes identified as driver genes for breast cancer  
 
 * A549encode.l2r.bedGraph: Raw replication timing signal from the A549 cell line sequenced by ENCODE
 
