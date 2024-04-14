@@ -5,7 +5,9 @@
 # written by Haoran Zhai (haoran.zhai.17@ucl.ac.uk) and run in R version 4.0.2
 
 # Description:
-# Scripts to create Supplementary Figure 4 in the manuscript named "Replication timing alterations impact mutation acquisition during tumour evolution".
+# Scripts to create Supplementary Figure 4 in the manuscript named 
+# "Replication timing alterations are associated with mutation acquisition 
+# during tumour evolution in breast and lung cancer".
 # Data accessibility statement can be found in the manuscript.
 
 #libraries

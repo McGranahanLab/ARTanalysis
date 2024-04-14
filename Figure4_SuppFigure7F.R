@@ -5,7 +5,9 @@
 # and run in R version 3.5.1
 
 # Description:
-# Script to create Figure 4 and SuppFigure 7 F  of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution in breast and lung cancer".
+# Script to create Figure 4 and SuppFigure 7 F  of the manuscript 
+# "Replication timing alterations are associated with mutation acquisition during 
+# tumour evolution in breast and lung cancer".
 
 #libraries and options
 options(stringsAsFactors = F)

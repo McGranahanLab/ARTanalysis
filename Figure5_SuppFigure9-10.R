@@ -4,7 +4,8 @@
 # written by Michelle Dietzen (m.dietzen@ucl.ac.uk) and run in R version 3.5.1
 
 # Description:
-# Script to create Figure 5 and SuppFigure 9-10 of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution in breast and lung cancer".
+# Script to create Figure 5 and SuppFigure 9-10 of the manuscript 
+# "Replication timing alterations are associated with mutation acquisition during tumour evolution in breast and lung cancer".
 # --> BRCA data used as an example (LUAD and LUSC data Data from the 100,000 Genomes Project are held in a secure research environment and are available to registered users. 
 #     See https://www.genomicsengland.co.uk/research/academic for further information.)
 # Data accessibility statement can be found in the manuscript.

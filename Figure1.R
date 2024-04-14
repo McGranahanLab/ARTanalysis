@@ -4,7 +4,9 @@
 # written by Michelle Dietzen (m.dietzen@ucl.ac.uk) and run in R version 3.5.1
 
 # Description:
-# Script to create Figure 1 of the manuscript "Replication timing alterations impact mutation acquisition during tumour evolution".
+# Script to create Figure 1 of the manuscript 
+# "Replication timing alterations are associated with mutation 
+# acquisition during tumour evolution in breast and lung cancer".
 # Data accessibility statement can be found in the manuscript.
 
 #library and options
