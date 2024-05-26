@@ -1,0 +1,41 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite both the article from preferred-citation and the software itself."
+authors:
+- family-names: Dietzen
+  given-names: Michelle
+- family-names: Zhai
+  given-names: Haoran
+- family-names: Barrington
+  given-names: Christopher
+preferred-citation:
+  authors:
+  - family-names: Dietzen
+    given-names: Michelle
+  - family-names: Zhai
+    given-names: Haoran
+  - family-names: Lucas
+    given-names: Olivia
+  - family-names: Pich
+    given-names: Oriol
+  - family-names: Barrington
+    given-names: Christopher
+  - family-names: Lu
+    given-names: Wei-Ting
+  - family-names: Guo
+    given-names: Yanping
+  - family-names: Hynds
+    given-names: Robert E.
+  - family-names: Zaccaria
+    given-names: Simone
+  - family-names: Swanton
+    given-names: Charles
+  - family-names: McGranahan
+    given-names: Nicholas
+  - family-names: Kanu
+    given-names: Nnennaya
+  title: "Replication timing alterations are associated with mutation acquisition during tumour evolution in breast and lung cancer"
+  type: article
+title: "Software to repeat the ART analysis by Dietzen, Zhai et al."
+repository-code: https://github.com/McGranahanLab/ARTanalysis
+version: v1.0.2
+date-released: 2024-04-14
